@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install*)",
+      "Bash(npm run*)",
+      "Bash(npm test*)",
+      "Bash(npx*)",
+      "Bash(mkdir*)",
+      "Bash(cd*)",
+      "Bash(ls*)",
+      "Bash(cat*)",
+      "Bash(pwd*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git branch*)",
+      "Bash(git checkout -b*)",
+      "Bash(cp*)",
+      "Bash(mv*)",
+      "Bash(echo*)",
+      "Bash(grep*)",
+      "Bash(find*)",
+      "Bash(tree*)",
+      "Bash(node*)",
+      "Bash(tsx*)",
+      "Bash(tsc*)",
+      "EditFile(*)",
+      "WriteFile(*)"
+    ],
+    "deny": [
+      "Bash(rm -rf*)",
+      "Bash(git push*)",
+      "Bash(git reset --hard*)",
+      "Bash(firebase deploy*)",
+      "Bash(npm publish*)"
+    ]
+  }
+}
