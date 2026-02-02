@@ -14,6 +14,7 @@
     }
   },
   "include": ["src"],
+  "exclude": ["src/**/*.test.*", "src/test"],
   "references": [
     { "path": "../shared" }
   ]

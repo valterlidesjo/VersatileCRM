@@ -4,6 +4,9 @@ export type { Customer as CustomerType } from "./customer";
 export { Contact } from "./contact";
 export type { Contact as ContactType } from "./contact";
 
+export { ContactUser } from "./contact-user";
+export type { ContactUser as ContactUserType } from "./contact-user";
+
 export { Deal } from "./deal";
 export type { Deal as DealType } from "./deal";
 
@@ -16,8 +19,8 @@ export type { Note as NoteType } from "./note";
 export { Invoice, InvoiceItem } from "./invoice";
 export type { Invoice as InvoiceType, InvoiceItem as InvoiceItemType } from "./invoice";
 
-export { Quote, QuoteItem } from "./quote";
-export type { Quote as QuoteType, QuoteItem as QuoteItemType } from "./quote";
+export { Quote, QuoteItem, QuoteCost, BillingFrequency } from "./quote";
+export type { Quote as QuoteType, QuoteItem as QuoteItemType, QuoteCost as QuoteCostType, BillingFrequency as BillingFrequencyType } from "./quote";
 
 export { Activity } from "./activity";
 export type { Activity as ActivityType } from "./activity";
@@ -29,3 +32,6 @@ export type {
   JournalEntryLine as JournalEntryLineType,
   JournalEntry as JournalEntryType,
 } from "./accounting";
+
+export { Profile } from "./profile";
+export type { Profile as ProfileType } from "./profile";

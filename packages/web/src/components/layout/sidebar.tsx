@@ -7,6 +7,7 @@ import {
   Receipt,
   FileText,
   Calculator,
+  UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ const navigation = [
   { name: "Billing", href: "/billing", icon: Receipt },
   { name: "Quotes", href: "/quotes", icon: FileText },
   { name: "Accounting", href: "/accounting", icon: Calculator },
+  { name: "Profile", href: "/profile", icon: UserCog },
 ] as const;
 
 export function Sidebar() {

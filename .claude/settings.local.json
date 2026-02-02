@@ -27,7 +27,8 @@
       "Bash(tsx*)",
       "Bash(tsc*)",
       "EditFile(*)",
-      "WriteFile(*)"
+      "WriteFile(*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [
       "Bash(rm -rf*)",
@@ -36,5 +37,9 @@
       "Bash(firebase deploy*)",
       "Bash(npm publish*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "playwright"
+  ],
+  "enableAllProjectMcpServers": true
 }

@@ -1,7 +1,6 @@
-import { useState } from "react";
-import { ACCOUNT_CATEGORIES } from "@crm/shared";
 import type { AccountCategory, JournalEntry, VatRate } from "@crm/shared";
 import { buildJournalEntry } from "../utils/journal-entry-builder";
+import { useTransactionForm } from "../hooks/use-transaction-form";
 import { cn } from "@/lib/utils";
 
 interface TransactionFormProps {
@@ -16,48 +15,27 @@ const VAT_OPTIONS: { value: VatRate; label: string }[] = [
 ];
 
 export function TransactionForm({ onSubmit }: TransactionFormProps) {
-  const [transactionType, setTransactionType] = useState<"cost" | "income">("cost");
-  const [categoryId, setCategoryId] = useState("");
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [description, setDescription] = useState("");
-  const [vatRate, setVatRate] = useState<VatRate>("25");
-
-  const filteredCategories = ACCOUNT_CATEGORIES.filter(
-    (c) => c.transactionType === transactionType
-  );
-
-  const selectedCategory = ACCOUNT_CATEGORIES.find((c) => c.id === categoryId);
-
-  function handleCategoryChange(id: string) {
-    setCategoryId(id);
-    const cat = ACCOUNT_CATEGORIES.find((c) => c.id === id);
-    if (cat) {
-      setVatRate(cat.defaultVatRate);
-    }
-  }
+  const form = useTransactionForm();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedCategory || !amount || !date) return;
+    if (!form.selectedCategory || !form.amount || !form.date) return;
 
     const entry = buildJournalEntry({
-      category: selectedCategory,
-      totalAmount: parseFloat(amount),
-      date,
-      description,
-      vatRate,
+      category: form.selectedCategory,
+      totalAmount: parseFloat(form.amount),
+      date: form.date,
+      description: form.description,
+      vatRate: form.vatRate,
     });
 
     onSubmit(entry);
-    setAmount("");
-    setDescription("");
-    setCategoryId("");
+    form.reset();
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-border bg-background p-4">
-      <h3 className="text-lg font-medium">Ny transaktion</h3>
+      <h3 className="text-lg font-medium">New Transaction</h3>
 
       {/* Type toggle */}
       <div className="flex gap-2">
@@ -65,18 +43,15 @@ export function TransactionForm({ onSubmit }: TransactionFormProps) {
           <button
             key={type}
             type="button"
-            onClick={() => {
-              setTransactionType(type);
-              setCategoryId("");
-            }}
+            onClick={() => form.switchType(type)}
             className={cn(
               "rounded-md px-4 py-2 text-sm font-medium transition-colors",
-              transactionType === type
+              form.transactionType === type
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:bg-muted/80"
             )}
           >
-            {type === "cost" ? "Kostnad" : "Intäkt"}
+            {type === "cost" ? "Cost" : "Income"}
           </button>
         ))}
       </div>
@@ -84,15 +59,15 @@ export function TransactionForm({ onSubmit }: TransactionFormProps) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Category */}
         <div>
-          <label className="mb-1 block text-sm font-medium">Kategori</label>
+          <label className="mb-1 block text-sm font-medium">Category</label>
           <select
-            value={categoryId}
-            onChange={(e) => handleCategoryChange(e.target.value)}
+            value={form.categoryId}
+            onChange={(e) => form.handleCategoryChange(e.target.value)}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             required
           >
-            <option value="">Välj kategori...</option>
-            {filteredCategories.map((cat: AccountCategory) => (
+            <option value="">Select category...</option>
+            {form.filteredCategories.map((cat: AccountCategory) => (
               <option key={cat.id} value={cat.id}>
                 {cat.name} ({cat.defaultAccountNumber})
               </option>
@@ -102,13 +77,13 @@ export function TransactionForm({ onSubmit }: TransactionFormProps) {
 
         {/* Amount */}
         <div>
-          <label className="mb-1 block text-sm font-medium">Belopp (inkl. moms)</label>
+          <label className="mb-1 block text-sm font-medium">Amount (incl. VAT)</label>
           <input
             type="number"
             step="0.01"
             min="0"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            value={form.amount}
+            onChange={(e) => form.setAmount(e.target.value)}
             placeholder="0.00"
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             required
@@ -117,11 +92,11 @@ export function TransactionForm({ onSubmit }: TransactionFormProps) {
 
         {/* Date */}
         <div>
-          <label className="mb-1 block text-sm font-medium">Datum</label>
+          <label className="mb-1 block text-sm font-medium">Date</label>
           <input
             type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
+            value={form.date}
+            onChange={(e) => form.setDate(e.target.value)}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             required
           />
@@ -129,10 +104,10 @@ export function TransactionForm({ onSubmit }: TransactionFormProps) {
 
         {/* VAT rate */}
         <div>
-          <label className="mb-1 block text-sm font-medium">Momssats</label>
+          <label className="mb-1 block text-sm font-medium">VAT Rate</label>
           <select
-            value={vatRate}
-            onChange={(e) => setVatRate(e.target.value as VatRate)}
+            value={form.vatRate}
+            onChange={(e) => form.setVatRate(e.target.value as VatRate)}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           >
             {VAT_OPTIONS.map((opt) => (
@@ -146,12 +121,12 @@ export function TransactionForm({ onSubmit }: TransactionFormProps) {
 
       {/* Description */}
       <div>
-        <label className="mb-1 block text-sm font-medium">Beskrivning</label>
+        <label className="mb-1 block text-sm font-medium">Description</label>
         <input
           type="text"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="T.ex. Inköp kontorsmaterial Kjell & Co"
+          value={form.description}
+          onChange={(e) => form.setDescription(e.target.value)}
+          placeholder="e.g. Office supplies purchase"
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
         />
       </div>
@@ -160,7 +135,7 @@ export function TransactionForm({ onSubmit }: TransactionFormProps) {
         type="submit"
         className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
       >
-        Lägg till
+        Add Entry
       </button>
     </form>
   );

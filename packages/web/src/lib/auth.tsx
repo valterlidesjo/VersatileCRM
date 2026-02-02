@@ -12,7 +12,7 @@ import {
   signOut as firebaseSignOut,
   type User,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, limit } from "firebase/firestore";
 import { auth, db } from "./firebase";
 
 type AuthState =
@@ -29,14 +29,24 @@ const googleProvider = new GoogleAuthProvider();
 let deniedEmail: string | null = null;
 
 async function isEmailAllowed(email: string): Promise<boolean> {
-  const snap = await getDoc(doc(db, "allowedEmails", email));
-  return snap.exists();
+  const q = query(
+    collection(db, "allowedEmails"),
+    where("email", "==", email),
+    limit(1),
+  );
+  const snap = await getDocs(q);
+  return !snap.empty;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: "loading" });
 
   useEffect(() => {
+    if (import.meta.env.VITE_DISABLE_AUTH === "true") {
+      setState({ status: "authenticated", user: { email: "test@test.com" } as User });
+      return;
+    }
+
     return onAuthStateChanged(auth, async (user) => {
       if (!user?.email) {
         setState(
