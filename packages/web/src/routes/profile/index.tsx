@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { PageContainer } from "@/components/layout/page-container";
 import {
@@ -12,28 +12,241 @@ export const Route = createFileRoute("/profile/")({
   component: ProfilePage,
 });
 
+// ─── Display formatters ───────────────────────────────────────────────────────
+
+const fmtNumber = (v: number | "") =>
+  v === "" ? "" : new Intl.NumberFormat("sv-SE").format(v) + " kr";
+
+const fmtDate = (v: string) => {
+  if (!v) return "";
+  try {
+    return new Intl.DateTimeFormat("sv-SE", { dateStyle: "long" }).format(
+      new Date(v)
+    );
+  } catch {
+    return v;
+  }
+};
+
+// ─── Active input styles ──────────────────────────────────────────────────────
+
 const INPUT_CLASS =
   "w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors";
 
-function Field({
-  label,
-  required,
-  children,
-}: {
+// ─── InlineField ─────────────────────────────────────────────────────────────
+
+type FieldType = "text" | "number" | "email" | "tel" | "url" | "date" | "textarea";
+
+interface InlineFieldProps {
   label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
+  value: string | number | "";
+  type?: FieldType;
+  placeholder?: string;
+  editable: boolean;
+  onSave: (value: string | number | "") => void;
+  format?: (v: string | number) => string;
+}
+
+function InlineField({
+  label,
+  value,
+  type = "text",
+  placeholder,
+  editable,
+  onSave,
+  format,
+}: InlineFieldProps) {
+  const [editing, setEditing] = useState(false);
+  const [localValue, setLocalValue] = useState<string | number | "">(value);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+
+  // Sync external changes (e.g. real-time Firestore updates)
+  useEffect(() => {
+    if (!editing) setLocalValue(value);
+  }, [value, editing]);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  function handleBlur() {
+    setEditing(false);
+    if (localValue !== value) {
+      const parsed =
+        type === "number" && localValue !== ""
+          ? Number(localValue)
+          : localValue;
+      onSave(parsed);
+    }
+  }
+
+  const displayValue = value !== "" && value !== null && value !== undefined
+    ? (format ? format(value as string | number) : String(value))
+    : null;
+
+  const isEmpty = displayValue === null;
+
+  // Non-admin: read-only text
+  if (!editable) {
+    return (
+      <div className="py-3 border-b border-border/50 last:border-0">
+        <p className="text-xs font-medium text-muted-foreground mb-0.5">{label}</p>
+        <p className="text-sm text-foreground">{displayValue ?? "—"}</p>
+      </div>
+    );
+  }
+
+  // Admin + editing
+  if (editing) {
+    const sharedProps = {
+      ref: inputRef as React.RefObject<HTMLInputElement>,
+      className: INPUT_CLASS,
+      value: String(localValue),
+      placeholder,
+      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+        setLocalValue(e.target.value),
+      onBlur: handleBlur,
+      onKeyDown: (e: React.KeyboardEvent) => {
+        if (e.key === "Escape") {
+          setLocalValue(value);
+          setEditing(false);
+        }
+        if (e.key === "Enter" && type !== "textarea") {
+          (e.target as HTMLElement).blur();
+        }
+      },
+    };
+
+    return (
+      <div className="py-3 border-b border-border/50 last:border-0">
+        <p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>
+        {type === "textarea" ? (
+          <textarea
+            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+            className={INPUT_CLASS + " min-h-[80px] resize-y"}
+            value={String(localValue)}
+            placeholder={placeholder}
+            onChange={(e) => setLocalValue(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setLocalValue(value);
+                setEditing(false);
+              }
+            }}
+            autoFocus
+          />
+        ) : (
+          <input {...sharedProps} type={type} autoFocus />
+        )}
+      </div>
+    );
+  }
+
+  // Admin + has value: text with hover pencil
+  if (!isEmpty) {
+    return (
+      <div
+        className="py-3 border-b border-border/50 last:border-0 cursor-pointer group"
+        onClick={() => setEditing(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === "Enter" && setEditing(true)}
+      >
+        <p className="text-xs font-medium text-muted-foreground mb-0.5">{label}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-foreground">{displayValue}</p>
+          <svg
+            className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-60 transition-opacity shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z"
+            />
+          </svg>
+        </div>
+      </div>
+    );
+  }
+
+  // Admin + empty: subtle placeholder input
   return (
-    <div>
-      <label className="mb-1 block text-sm font-medium text-foreground">
-        {label}
-        {required && " *"}
-      </label>
-      {children}
+    <div className="py-3 border-b border-border/50 last:border-0">
+      <p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>
+      <input
+        className="w-full border-0 bg-transparent p-0 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-0"
+        type={type === "textarea" ? "text" : type}
+        value={String(localValue)}
+        placeholder={placeholder ?? "—"}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onFocus={() => setEditing(true)}
+      />
     </div>
   );
 }
+
+// ─── FSkattRow ────────────────────────────────────────────────────────────────
+
+function FSkattRow({
+  value,
+  editable,
+  onSave,
+}: {
+  value: boolean;
+  editable: boolean;
+  onSave: (v: boolean) => void;
+}) {
+  return (
+    <div className="py-3 border-b border-border/50 last:border-0">
+      <p className="text-xs font-medium text-muted-foreground mb-0.5">F-skatt</p>
+      {editable ? (
+        <label className="flex items-center gap-2 cursor-pointer w-fit">
+          <input
+            type="checkbox"
+            checked={value}
+            onChange={(e) => onSave(e.target.checked)}
+            className="h-4 w-4 rounded border-border accent-primary"
+          />
+          <span className="text-sm text-foreground">
+            {value ? "Registrerad" : "Ej registrerad"}
+          </span>
+        </label>
+      ) : (
+        <p className="text-sm text-foreground">
+          {value ? "Registrerad" : "Ej registrerad"}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─── Section wrapper ──────────────────────────────────────────────────────────
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mb-8">
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+        {title}
+      </h3>
+      <div className="rounded-lg border border-border bg-card px-4 divide-y-0">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── Form data helpers ────────────────────────────────────────────────────────
 
 const INITIAL_FORM: CompanyProfileFormData = {
   orgNumber: "",
@@ -70,28 +283,24 @@ function profileToForm(profile: CompanyProfile | null): CompanyProfileFormData {
   };
 }
 
+// ─── ProfilePage ──────────────────────────────────────────────────────────────
+
 function ProfilePage() {
   const { profile, loading, saveProfile } = useCompanyProfile();
   const isAdmin = useIsAdmin();
   const [form, setForm] = useState<CompanyProfileFormData>(INITIAL_FORM);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (profile) setForm(profileToForm(profile));
   }, [profile]);
 
-  function update(field: keyof CompanyProfileFormData, value: string | boolean | number | "") {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await saveProfile(form);
-    } finally {
-      setSaving(false);
-    }
+  function handleFieldSave(
+    field: keyof CompanyProfileFormData,
+    value: string | number | boolean | ""
+  ) {
+    const newForm = { ...form, [field]: value };
+    setForm(newForm);
+    saveProfile(newForm).catch(console.error);
   }
 
   if (loading) {
@@ -105,188 +314,121 @@ function ProfilePage() {
   return (
     <PageContainer
       title="Company Profile"
-      description="Company details for invoices and quotes"
+      description="Företagsinformation för fakturor och offerter"
     >
-      {!isAdmin && (
-        <div className="mb-4 rounded-md bg-muted/50 px-4 py-3 text-sm text-muted-foreground border border-border">
-          You are viewing the company profile in read-only mode. Only administrators can edit this information.
-        </div>
-      )}
+      <div className="max-w-xl">
+        <Section title="Företagsinformation">
+          <InlineField
+            label="Juridiskt namn"
+            value={form.legalName}
+            editable={isAdmin}
+            onSave={(v) => handleFieldSave("legalName", v)}
+            placeholder="Mitt AB"
+          />
+          <InlineField
+            label="Organisationsnummer"
+            value={form.orgNumber}
+            editable={isAdmin}
+            onSave={(v) => handleFieldSave("orgNumber", v)}
+            placeholder="556677-8899"
+          />
+          <InlineField
+            label="Bank"
+            value={form.bank}
+            editable={isAdmin}
+            onSave={(v) => handleFieldSave("bank", v)}
+            placeholder="Swedbank"
+          />
+          <InlineField
+            label="Bankgiro"
+            value={form.bankgiro}
+            editable={isAdmin}
+            onSave={(v) => handleFieldSave("bankgiro", v)}
+            placeholder="123-4567"
+          />
+          <InlineField
+            label="Adress"
+            value={form.address}
+            editable={isAdmin}
+            onSave={(v) => handleFieldSave("address", v)}
+            placeholder="Storgatan 1, 111 22 Stockholm"
+          />
+          <InlineField
+            label="Telefon"
+            value={form.phone}
+            type="tel"
+            editable={isAdmin}
+            onSave={(v) => handleFieldSave("phone", v)}
+            placeholder="+46 70 123 45 67"
+          />
+          <InlineField
+            label="E-post"
+            value={form.email}
+            type="email"
+            editable={isAdmin}
+            onSave={(v) => handleFieldSave("email", v)}
+            placeholder="info@example.se"
+          />
+          <InlineField
+            label="Webbplats"
+            value={form.website}
+            type="url"
+            editable={isAdmin}
+            onSave={(v) => handleFieldSave("website", v)}
+            placeholder="https://example.se"
+          />
+          <FSkattRow
+            value={form.fSkatt}
+            editable={isAdmin}
+            onSave={(v) => handleFieldSave("fSkatt", v)}
+          />
+        </Section>
 
-      <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Legal Name" required>
-            <input
-              className={INPUT_CLASS}
-              value={form.legalName}
-              onChange={(e) => update("legalName", e.target.value)}
-              disabled={!isAdmin}
-              required
-            />
-          </Field>
+        <Section title="Mål">
+          <InlineField
+            label="Inkomstmål (SEK/år)"
+            value={form.incomeGoal}
+            type="number"
+            editable={isAdmin}
+            onSave={(v) => handleFieldSave("incomeGoal", v)}
+            placeholder="600000"
+            format={(v) => fmtNumber(v as number)}
+          />
+          <InlineField
+            label="MRR-mål (SEK/mån)"
+            value={form.mrrGoal}
+            type="number"
+            editable={isAdmin}
+            onSave={(v) => handleFieldSave("mrrGoal", v)}
+            placeholder="60000"
+            format={(v) => fmtNumber(v as number)}
+          />
+          <InlineField
+            label="Deadline"
+            value={form.goalDeadline}
+            type="date"
+            editable={isAdmin}
+            onSave={(v) => handleFieldSave("goalDeadline", v)}
+            format={(v) => fmtDate(String(v))}
+          />
+          <InlineField
+            label="Hur når vi målet?"
+            value={form.goalDescription}
+            type="textarea"
+            editable={isAdmin}
+            onSave={(v) => handleFieldSave("goalDescription", v)}
+            placeholder="Fokusera på att konvertera varma leads..."
+          />
+        </Section>
 
-          <Field label="Org Number" required>
-            <input
-              className={INPUT_CLASS}
-              value={form.orgNumber}
-              onChange={(e) => update("orgNumber", e.target.value)}
-              placeholder="556677-8899"
-              disabled={!isAdmin}
-              required
-            />
-          </Field>
-
-          <Field label="Bank" required>
-            <input
-              className={INPUT_CLASS}
-              value={form.bank}
-              onChange={(e) => update("bank", e.target.value)}
-              disabled={!isAdmin}
-              required
-            />
-          </Field>
-
-          <Field label="Bankgiro" required>
-            <input
-              className={INPUT_CLASS}
-              value={form.bankgiro}
-              onChange={(e) => update("bankgiro", e.target.value)}
-              placeholder="123-4567"
-              disabled={!isAdmin}
-              required
-            />
-          </Field>
-
-          <Field label="Address">
-            <input
-              className={INPUT_CLASS}
-              value={form.address}
-              onChange={(e) => update("address", e.target.value)}
-              placeholder="Storgatan 1, 111 22 Stockholm"
-              disabled={!isAdmin}
-            />
-          </Field>
-
-          <Field label="Phone">
-            <input
-              className={INPUT_CLASS}
-              type="tel"
-              value={form.phone}
-              onChange={(e) => update("phone", e.target.value)}
-              placeholder="+46 70 123 45 67"
-              disabled={!isAdmin}
-            />
-          </Field>
-
-          <Field label="Email">
-            <input
-              className={INPUT_CLASS}
-              type="email"
-              value={form.email}
-              onChange={(e) => update("email", e.target.value)}
-              placeholder="info@example.se"
-              disabled={!isAdmin}
-            />
-          </Field>
-
-          <Field label="Website">
-            <input
-              className={INPUT_CLASS}
-              type="url"
-              value={form.website}
-              onChange={(e) => update("website", e.target.value)}
-              placeholder="https://example.se"
-              disabled={!isAdmin}
-            />
-          </Field>
-
-          <Field label="F-skatt">
-            <label className="flex items-center gap-2 pt-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.fSkatt}
-                onChange={(e) => update("fSkatt", e.target.checked)}
-                className="h-4 w-4 rounded border-border"
-                disabled={!isAdmin}
-              />
-              Registered for F-skatt
-            </label>
-          </Field>
-        </div>
-
-        <div className="border-t border-border pt-6 mt-2">
-          <h3 className="text-lg font-medium mb-4">Goals</h3>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Total Income Goal (SEK)">
-              <input
-                className={INPUT_CLASS}
-                type="number"
-                value={form.incomeGoal}
-                onChange={(e) =>
-                  update("incomeGoal", e.target.value ? Number(e.target.value) : "")
-                }
-                placeholder="600000"
-                disabled={!isAdmin}
-              />
-            </Field>
-
-            <Field label="MRR Goal (SEK)">
-              <input
-                className={INPUT_CLASS}
-                type="number"
-                value={form.mrrGoal}
-                onChange={(e) =>
-                  update("mrrGoal", e.target.value ? Number(e.target.value) : "")
-                }
-                placeholder="60000"
-                disabled={!isAdmin}
-              />
-            </Field>
-
-            <Field label="Goal Deadline">
-              <input
-                className={INPUT_CLASS}
-                type="date"
-                value={form.goalDeadline}
-                onChange={(e) => update("goalDeadline", e.target.value)}
-                disabled={!isAdmin}
-              />
-            </Field>
-          </div>
-
-          <div className="mt-4">
-            <Field label="How to achieve current goal?">
-              <textarea
-                className={INPUT_CLASS + " min-h-[80px] resize-y"}
-                value={form.goalDescription}
-                onChange={(e) => update("goalDescription", e.target.value)}
-                placeholder="Focus on converting warm leads and increasing recurring contracts..."
-                disabled={!isAdmin}
-              />
-            </Field>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {isAdmin && (
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
-              {saving ? "Saving..." : profile ? "Update Company Profile" : "Create Company Profile"}
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors"
-          >
-            Logout
-          </button>
-        </div>
-      </form>
+        <button
+          type="button"
+          onClick={() => signOut()}
+          className="rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors"
+        >
+          Logga ut
+        </button>
+      </div>
     </PageContainer>
   );
 }
