@@ -11,7 +11,8 @@
   "scripts": {
     "dev": "npm run dev -w @crm/web",
     "build": "npm run build -w @crm/shared && npm run build -w @crm/web",
-    "lint": "npm run lint -w @crm/web"
+    "lint": "npm run lint -w @crm/web",
+    "migrate:allowed-emails": "node scripts/migrate-allowed-emails.mjs"
   },
   "devDependencies": {
     "typescript": "~5.9.3"

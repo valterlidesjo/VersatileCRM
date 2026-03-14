@@ -12,14 +12,15 @@ import {
   signOut as firebaseSignOut,
   type User,
 } from "firebase/auth";
-import { collection, getDocs, query, where, limit } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
+import type { PlatformRole, UserRole } from "@crm/shared";
 
-type AuthState =
+export type AuthState =
   | { status: "loading" }
   | { status: "unauthenticated" }
   | { status: "denied"; email: string }
-  | { status: "authenticated"; user: User };
+  | { status: "authenticated"; user: User; role: UserRole; email: string; partnerId: string; platformRole: PlatformRole | null };
 
 const AuthContext = createContext<AuthState>({ status: "loading" });
 
@@ -28,14 +29,23 @@ const googleProvider = new GoogleAuthProvider();
 // Module-level state to survive the onAuthStateChanged re-fire after sign-out
 let deniedEmail: string | null = null;
 
-async function isEmailAllowed(email: string): Promise<boolean> {
-  const q = query(
-    collection(db, "allowedEmails"),
-    where("email", "==", email),
-    limit(1),
-  );
-  const snap = await getDocs(q);
-  return !snap.empty;
+async function getUserPermissions(
+  email: string
+): Promise<{ allowed: boolean; role: UserRole | null; partnerId: string | null; platformRole: PlatformRole | null }> {
+  const docRef = doc(db, "allowedEmails", email);
+  const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) {
+    return { allowed: false, role: null, partnerId: null, platformRole: null };
+  }
+
+  const data = docSnap.data();
+  return {
+    allowed: true,
+    role: (data.role as UserRole) || "user",
+    partnerId: (data.partnerId as string) || null,
+    platformRole: (data.platformRole as PlatformRole) || null,
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -43,12 +53,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (import.meta.env.VITE_DISABLE_AUTH === "true") {
-      setState({ status: "authenticated", user: { email: "test@test.com" } as User });
+      setState({
+        status: "authenticated",
+        user: { email: "test@test.com" } as User,
+        role: "admin",
+        email: "test@test.com",
+        partnerId: import.meta.env.VITE_DEV_PARTNER_ID || "dev",
+        platformRole: "superAdmin",
+      });
       return;
     }
 
     return onAuthStateChanged(auth, async (user) => {
-      if (!user?.email) {
+      if (!user?.email || !user?.uid) {
         setState(
           deniedEmail
             ? { status: "denied", email: deniedEmail }
@@ -57,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const allowed = await isEmailAllowed(user.email);
+      const { allowed, role, partnerId, platformRole } = await getUserPermissions(user.email);
       if (!allowed) {
         deniedEmail = user.email;
         await firebaseSignOut(auth);
@@ -65,7 +82,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       deniedEmail = null;
-      setState({ status: "authenticated", user });
+      setState({
+        status: "authenticated",
+        user,
+        role: role!,
+        email: user.email,
+        partnerId: partnerId || "default",
+        platformRole,
+      });
     });
   }, []);
 
@@ -74,6 +98,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   return useContext(AuthContext);
+}
+
+export function useUserRole(): UserRole | null {
+  const auth = useAuth();
+  return auth.status === "authenticated" ? auth.role : null;
+}
+
+export function useIsAdmin(): boolean {
+  const auth = useAuth();
+  return auth.status === "authenticated" && auth.role === "admin";
+}
+
+export function useIsSuperAdmin(): boolean {
+  const auth = useAuth();
+  return auth.status === "authenticated" && auth.platformRole === "superAdmin";
 }
 
 export async function signIn() {

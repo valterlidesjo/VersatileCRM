@@ -1,8 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  collection,
   addDoc,
-  doc,
   updateDoc,
   onSnapshot,
   query,
@@ -11,32 +9,55 @@ import {
   getDocs,
   limit,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { partnerCol, partnerDocRef } from "@/lib/firebase-partner";
+import { usePartner } from "@/lib/partner";
 import type { Customer, ContactUser } from "@crm/shared";
 import type { CustomerFormData, UserFormData } from "../components/form-fields";
 
 export function useCustomers() {
+  const { partnerId } = usePartner();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
-    const q = query(collection(db, "customers"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      })) as Customer[];
-      setCustomers(data);
-      setLoading(false);
-    });
-    return unsubscribe;
-  }, []);
+    // Prevent double-subscription in StrictMode
+    if (isSubscribedRef.current) {
+      return;
+    }
+
+    isSubscribedRef.current = true;
+
+    const q = query(partnerCol(partnerId, "customers"), orderBy("createdAt", "desc"), limit(200));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const data = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })) as Customer[];
+        setCustomers(data);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        setError(err.message);
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      isSubscribedRef.current = false;
+    };
+  }, [partnerId]);
 
   const addCustomer = useCallback(
     async (data: { customer: CustomerFormData; user: UserFormData }) => {
       const now = new Date().toISOString();
 
-      const customerDoc = await addDoc(collection(db, "customers"), {
+      const customerDoc = await addDoc(partnerCol(partnerId, "customers"), {
         name: data.customer.name,
         location: data.customer.location,
         phone: data.customer.phone,
@@ -47,11 +68,12 @@ export function useCustomers() {
         ...(data.customer.website && { website: data.customer.website }),
         ...(data.customer.orgNumber && { orgNumber: data.customer.orgNumber }),
         ...(data.customer.legalName && { legalName: data.customer.legalName }),
+        ...(data.customer.mrr !== "" && { mrr: data.customer.mrr }),
         createdAt: now,
         updatedAt: now,
       });
 
-      await addDoc(collection(db, "users"), {
+      await addDoc(partnerCol(partnerId, "contactUsers"), {
         customerId: customerDoc.id,
         name: data.user.name,
         location: data.user.location,
@@ -61,13 +83,13 @@ export function useCustomers() {
         updatedAt: now,
       });
     },
-    []
+    [partnerId]
   );
 
   const updateCustomer = useCallback(
     async (id: string, data: CustomerFormData) => {
       const now = new Date().toISOString();
-      await updateDoc(doc(db, "customers", id), {
+      await updateDoc(partnerDocRef(partnerId, "customers", id), {
         name: data.name,
         location: data.location,
         phone: data.phone,
@@ -78,16 +100,17 @@ export function useCustomers() {
         website: data.website || null,
         orgNumber: data.orgNumber || null,
         legalName: data.legalName || null,
+        mrr: data.mrr !== "" ? data.mrr : null,
         updatedAt: now,
       });
     },
-    []
+    [partnerId]
   );
 
   const updateUser = useCallback(
     async (id: string, data: UserFormData) => {
       const now = new Date().toISOString();
-      await updateDoc(doc(db, "users", id), {
+      await updateDoc(partnerDocRef(partnerId, "contactUsers", id), {
         name: data.name,
         location: data.location,
         phone: data.phone,
@@ -95,13 +118,13 @@ export function useCustomers() {
         updatedAt: now,
       });
     },
-    []
+    [partnerId]
   );
 
   const fetchContactUser = useCallback(
     async (customerId: string): Promise<ContactUser | null> => {
       const q = query(
-        collection(db, "users"),
+        partnerCol(partnerId, "contactUsers"),
         where("customerId", "==", customerId),
         limit(1)
       );
@@ -110,8 +133,8 @@ export function useCustomers() {
       const d = snap.docs[0];
       return { id: d.id, ...d.data() } as ContactUser;
     },
-    []
+    [partnerId]
   );
 
-  return { customers, loading, addCustomer, updateCustomer, updateUser, fetchContactUser };
+  return { customers, loading, error, addCustomer, updateCustomer, updateUser, fetchContactUser };
 }

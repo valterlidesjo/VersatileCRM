@@ -34,11 +34,14 @@ export function EditCustomerDialog({ open, onOpenChange, customer, contactUser, 
 
   useEffect(() => {
     setCustomerForm(toCustomerForm(customer));
-    setUserForm(toUserForm(contactUser));
     setEditingUser(false);
-  }, [customer, contactUser]);
+  }, [customer]);
 
-  function handleCustomerChange(field: keyof CustomerFormData, value: string) {
+  useEffect(() => {
+    setUserForm(toUserForm(contactUser));
+  }, [contactUser]);
+
+  function handleCustomerChange(field: keyof CustomerFormData, value: string | number | "") {
     setCustomerForm((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -127,6 +130,17 @@ export function EditCustomerDialog({ open, onOpenChange, customer, contactUser, 
               <Field label="Legal Name">
                 <input type="text" value={customerForm.legalName} onChange={(e) => handleCustomerChange("legalName", e.target.value)} className={INPUT_CLASS} placeholder="Full legal entity name" />
               </Field>
+              {customerForm.status === "mrr" && (
+                <Field label="Monthly Recurring Revenue (SEK)">
+                  <input
+                    type="number"
+                    value={customerForm.mrr}
+                    onChange={(e) => handleCustomerChange("mrr", e.target.value ? Number(e.target.value) : "")}
+                    className={INPUT_CLASS}
+                    placeholder="10000"
+                  />
+                </Field>
+              )}
             </div>
           )}
 
@@ -145,7 +159,7 @@ export function EditCustomerDialog({ open, onOpenChange, customer, contactUser, 
 }
 
 function toCustomerForm(c: Customer | null): CustomerFormData {
-  if (!c) return { name: "", location: "", phone: "", email: "", status: "not_contacted", categoryOfWork: "", description: "", website: "", orgNumber: "", legalName: "" };
+  if (!c) return { name: "", location: "", phone: "", email: "", status: "not_contacted", categoryOfWork: "", description: "", website: "", orgNumber: "", legalName: "", mrr: "" };
   return {
     name: c.name,
     location: c.location,
@@ -157,6 +171,7 @@ function toCustomerForm(c: Customer | null): CustomerFormData {
     website: c.website ?? "",
     orgNumber: c.orgNumber ?? "",
     legalName: c.legalName ?? "",
+    mrr: c.mrr ?? "",
   };
 }
 

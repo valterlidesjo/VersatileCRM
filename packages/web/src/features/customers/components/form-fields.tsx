@@ -12,6 +12,7 @@ export interface CustomerFormData {
   website: string;
   orgNumber: string;
   legalName: string;
+  mrr: number | "";
 }
 
 export interface UserFormData {
@@ -32,6 +33,7 @@ export const INITIAL_CUSTOMER: CustomerFormData = {
   website: "",
   orgNumber: "",
   legalName: "",
+  mrr: "",
 };
 
 export const INITIAL_USER: UserFormData = {

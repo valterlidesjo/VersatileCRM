@@ -10,8 +10,8 @@ export type { ContactUser as ContactUserType } from "./contact-user";
 export { Deal } from "./deal";
 export type { Deal as DealType } from "./deal";
 
-export { Meeting } from "./meeting";
-export type { Meeting as MeetingType } from "./meeting";
+export { Meeting, MeetingAttendee } from "./meeting";
+export type { Meeting as MeetingType, MeetingAttendee as MeetingAttendeeType } from "./meeting";
 
 export { Note } from "./note";
 export type { Note as NoteType } from "./note";
@@ -33,5 +33,18 @@ export type {
   JournalEntry as JournalEntryType,
 } from "./accounting";
 
-export { Profile } from "./profile";
-export type { Profile as ProfileType } from "./profile";
+export { CompanyProfile } from "./profile";
+export type { CompanyProfile as CompanyProfileType } from "./profile";
+
+export { AllowedEmail } from "./allowed-email";
+export type { AllowedEmail as AllowedEmailType } from "./allowed-email";
+
+export { Partner, PartnerMember } from "./partner";
+export type { Partner as PartnerType, PartnerMember as PartnerMemberType } from "./partner";
+
+export { Product, ProductVariant, ShopifyIntegrationConfig } from "./product";
+export type {
+  Product as ProductType,
+  ProductVariant as ProductVariantType,
+  ShopifyIntegrationConfig as ShopifyIntegrationConfigType,
+} from "./product";

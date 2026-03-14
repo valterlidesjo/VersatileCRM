@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import type { Profile, Customer, BillingFrequency } from "@crm/shared";
+import type { CompanyProfile, Customer, BillingFrequency } from "@crm/shared";
 import type { QuoteLineData, QuoteTotals } from "./calculations";
 
 const LABELS = {
@@ -55,7 +55,7 @@ const BILLING_LABELS: Record<BillingFrequency, Record<"sv" | "en", string>> = {
 };
 
 interface GenerateQuotePdfParams {
-  profile: Profile;
+  profile: CompanyProfile;
   customer: Customer;
   quoteNumber: string;
   validUntil: string;

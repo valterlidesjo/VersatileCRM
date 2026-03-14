@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { PageContainer } from "@/components/layout/page-container";
 import {
-  useProfile,
-  type ProfileFormData,
+  useCompanyProfile,
+  type CompanyProfileFormData,
 } from "@/features/profile/hooks/use-profile";
+import type { CompanyProfile } from "@crm/shared";
+import { useIsAdmin, signOut } from "@/lib/auth";
 
 export const Route = createFileRoute("/profile/")({
   component: ProfilePage,
@@ -33,7 +35,7 @@ function Field({
   );
 }
 
-const INITIAL_FORM: ProfileFormData = {
+const INITIAL_FORM: CompanyProfileFormData = {
   orgNumber: "",
   legalName: "",
   bank: "",
@@ -42,33 +44,43 @@ const INITIAL_FORM: ProfileFormData = {
   phone: "",
   email: "",
   website: "",
-  goal: "",
+  incomeGoal: "",
+  mrrGoal: "",
+  goalDeadline: "",
+  goalDescription: "",
   fSkatt: false,
 };
 
+function profileToForm(profile: CompanyProfile | null): CompanyProfileFormData {
+  if (!profile) return INITIAL_FORM;
+  return {
+    orgNumber: profile.orgNumber,
+    legalName: profile.legalName,
+    bank: profile.bank,
+    bankgiro: profile.bankgiro,
+    address: profile.address ?? "",
+    phone: profile.phone ?? "",
+    email: profile.email ?? "",
+    website: profile.website ?? "",
+    incomeGoal: profile.incomeGoal ?? "",
+    mrrGoal: profile.mrrGoal ?? "",
+    goalDeadline: profile.goalDeadline ?? "",
+    goalDescription: profile.goalDescription ?? "",
+    fSkatt: profile.fSkatt,
+  };
+}
+
 function ProfilePage() {
-  const { profile, loading, saveProfile } = useProfile();
-  const [form, setForm] = useState<ProfileFormData>(INITIAL_FORM);
+  const { profile, loading, saveProfile } = useCompanyProfile();
+  const isAdmin = useIsAdmin();
+  const [form, setForm] = useState<CompanyProfileFormData>(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (profile) {
-      setForm({
-        orgNumber: profile.orgNumber,
-        legalName: profile.legalName,
-        bank: profile.bank,
-        bankgiro: profile.bankgiro,
-        address: profile.address ?? "",
-        phone: profile.phone ?? "",
-        email: profile.email ?? "",
-        website: profile.website ?? "",
-        goal: profile.goal ?? "",
-        fSkatt: profile.fSkatt,
-      });
-    }
+    if (profile) setForm(profileToForm(profile));
   }, [profile]);
 
-  function update(field: keyof ProfileFormData, value: string | boolean) {
+  function update(field: keyof CompanyProfileFormData, value: string | boolean | number | "") {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -84,7 +96,7 @@ function ProfilePage() {
 
   if (loading) {
     return (
-      <PageContainer title="Profile">
+      <PageContainer title="Company Profile">
         <p className="text-sm text-muted-foreground">Loading...</p>
       </PageContainer>
     );
@@ -92,9 +104,15 @@ function ProfilePage() {
 
   return (
     <PageContainer
-      title="Profile"
-      description="Your business details for invoices and quotes"
+      title="Company Profile"
+      description="Company details for invoices and quotes"
     >
+      {!isAdmin && (
+        <div className="mb-4 rounded-md bg-muted/50 px-4 py-3 text-sm text-muted-foreground border border-border">
+          You are viewing the company profile in read-only mode. Only administrators can edit this information.
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Legal Name" required>
@@ -102,6 +120,7 @@ function ProfilePage() {
               className={INPUT_CLASS}
               value={form.legalName}
               onChange={(e) => update("legalName", e.target.value)}
+              disabled={!isAdmin}
               required
             />
           </Field>
@@ -112,6 +131,7 @@ function ProfilePage() {
               value={form.orgNumber}
               onChange={(e) => update("orgNumber", e.target.value)}
               placeholder="556677-8899"
+              disabled={!isAdmin}
               required
             />
           </Field>
@@ -121,6 +141,7 @@ function ProfilePage() {
               className={INPUT_CLASS}
               value={form.bank}
               onChange={(e) => update("bank", e.target.value)}
+              disabled={!isAdmin}
               required
             />
           </Field>
@@ -131,6 +152,7 @@ function ProfilePage() {
               value={form.bankgiro}
               onChange={(e) => update("bankgiro", e.target.value)}
               placeholder="123-4567"
+              disabled={!isAdmin}
               required
             />
           </Field>
@@ -141,6 +163,7 @@ function ProfilePage() {
               value={form.address}
               onChange={(e) => update("address", e.target.value)}
               placeholder="Storgatan 1, 111 22 Stockholm"
+              disabled={!isAdmin}
             />
           </Field>
 
@@ -151,6 +174,7 @@ function ProfilePage() {
               value={form.phone}
               onChange={(e) => update("phone", e.target.value)}
               placeholder="+46 70 123 45 67"
+              disabled={!isAdmin}
             />
           </Field>
 
@@ -161,6 +185,7 @@ function ProfilePage() {
               value={form.email}
               onChange={(e) => update("email", e.target.value)}
               placeholder="info@example.se"
+              disabled={!isAdmin}
             />
           </Field>
 
@@ -171,6 +196,7 @@ function ProfilePage() {
               value={form.website}
               onChange={(e) => update("website", e.target.value)}
               placeholder="https://example.se"
+              disabled={!isAdmin}
             />
           </Field>
 
@@ -181,28 +207,85 @@ function ProfilePage() {
                 checked={form.fSkatt}
                 onChange={(e) => update("fSkatt", e.target.checked)}
                 className="h-4 w-4 rounded border-border"
+                disabled={!isAdmin}
               />
               Registered for F-skatt
             </label>
           </Field>
         </div>
 
-        <Field label="Goal / Description">
-          <textarea
-            className={INPUT_CLASS + " min-h-[80px] resize-y"}
-            value={form.goal}
-            onChange={(e) => update("goal", e.target.value)}
-            placeholder="Short description of your business goal"
-          />
-        </Field>
+        <div className="border-t border-border pt-6 mt-2">
+          <h3 className="text-lg font-medium mb-4">Goals</h3>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Total Income Goal (SEK)">
+              <input
+                className={INPUT_CLASS}
+                type="number"
+                value={form.incomeGoal}
+                onChange={(e) =>
+                  update("incomeGoal", e.target.value ? Number(e.target.value) : "")
+                }
+                placeholder="600000"
+                disabled={!isAdmin}
+              />
+            </Field>
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-        >
-          {saving ? "Saving..." : profile ? "Update Profile" : "Create Profile"}
-        </button>
+            <Field label="MRR Goal (SEK)">
+              <input
+                className={INPUT_CLASS}
+                type="number"
+                value={form.mrrGoal}
+                onChange={(e) =>
+                  update("mrrGoal", e.target.value ? Number(e.target.value) : "")
+                }
+                placeholder="60000"
+                disabled={!isAdmin}
+              />
+            </Field>
+
+            <Field label="Goal Deadline">
+              <input
+                className={INPUT_CLASS}
+                type="date"
+                value={form.goalDeadline}
+                onChange={(e) => update("goalDeadline", e.target.value)}
+                disabled={!isAdmin}
+              />
+            </Field>
+          </div>
+
+          <div className="mt-4">
+            <Field label="How to achieve current goal?">
+              <textarea
+                className={INPUT_CLASS + " min-h-[80px] resize-y"}
+                value={form.goalDescription}
+                onChange={(e) => update("goalDescription", e.target.value)}
+                placeholder="Focus on converting warm leads and increasing recurring contracts..."
+                disabled={!isAdmin}
+              />
+            </Field>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {isAdmin && (
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {saving ? "Saving..." : profile ? "Update Company Profile" : "Create Company Profile"}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => signOut()}
+            className="rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors"
+          >
+            Logout
+          </button>
+        </div>
       </form>
     </PageContainer>
   );

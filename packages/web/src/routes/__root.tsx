@@ -1,8 +1,29 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import { Sidebar } from "@/components/layout/sidebar";
-import { useAuth, signIn, signOut } from "@/lib/auth";
+import { useAuth, signIn, signOut, type AuthState } from "@/lib/auth";
+
+function ErrorFallback({ error }: FallbackProps) {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  return (
+    <div className="flex flex-col items-center justify-center h-screen gap-4">
+      <h2 className="text-lg font-semibold">Något gick fel</h2>
+      <p className="text-sm text-muted-foreground">{message}</p>
+      <button onClick={() => window.location.reload()} className="text-sm underline">
+        Ladda om sidan
+      </button>
+    </div>
+  );
+}
+
+export interface RootRouteContext {
+  auth: AuthState;
+}
 
 export const Route = createRootRoute({
+  beforeLoad: ({ context }): RootRouteContext => {
+    return context as RootRouteContext;
+  },
   component: RootLayout,
 });
 
@@ -22,10 +43,12 @@ function RootLayout() {
   }
 
   return (
-    <div className="flex h-screen">
-      <Sidebar />
-      <Outlet />
-    </div>
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <div className="flex h-screen">
+        <Sidebar />
+        <Outlet />
+      </div>
+    </ErrorBoundary>
   );
 }
 

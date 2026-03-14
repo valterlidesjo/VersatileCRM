@@ -5,7 +5,20 @@ import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import path from "node:path";
 
 export default defineConfig({
-  plugins: [TanStackRouterVite({ routesDirectory: "./src/routes" }), react(), tailwindcss()],
+  plugins: [
+    TanStackRouterVite({
+      routesDirectory: "./src/routes",
+      generatedRouteTree: "./src/routeTree.gen.ts",
+      enableRouteGeneration: true,
+    }),
+    react(),
+    tailwindcss(),
+  ],
+  server: {
+    watch: {
+      ignored: ["**/routeTree.gen.ts"],
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { onSnapshot } from "firebase/firestore";
 import { PageContainer } from "@/components/layout/page-container";
 import { useCustomers } from "@/features/customers/hooks/use-customers";
+import { partnerDocRef } from "@/lib/firebase-partner";
+import { usePartner } from "@/lib/partner";
 import { EditCustomerDialog } from "@/features/customers/components/edit-customer-dialog";
 import { CUSTOMER_STATUS_LABELS } from "@crm/shared";
 import type { Customer, ContactUser } from "@crm/shared";
@@ -39,15 +40,24 @@ const STATUS_COLORS: Record<string, string> = {
 function CustomerDetailPage() {
   const { customerId } = Route.useParams();
   const navigate = useNavigate();
+  const { partnerId } = usePartner();
   const { updateCustomer, updateUser, fetchContactUser } = useCustomers();
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [contactUser, setContactUser] = useState<ContactUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(doc(db, "customers", customerId), (snap) => {
+    // Prevent double-subscription in StrictMode
+    if (isSubscribedRef.current) {
+      return;
+    }
+
+    isSubscribedRef.current = true;
+
+    const unsubscribe = onSnapshot(partnerDocRef(partnerId, "customers", customerId), (snap) => {
       if (snap.exists()) {
         setCustomer({ id: snap.id, ...snap.data() } as Customer);
       } else {
@@ -55,8 +65,12 @@ function CustomerDetailPage() {
       }
       setLoading(false);
     });
-    return unsubscribe;
-  }, [customerId]);
+
+    return () => {
+      unsubscribe();
+      isSubscribedRef.current = false;
+    };
+  }, [customerId, partnerId]);
 
   useEffect(() => {
     fetchContactUser(customerId).then(setContactUser);

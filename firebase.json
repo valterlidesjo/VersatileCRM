@@ -1,0 +1,27 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "functions": {
+    "source": "packages/functions",
+    "runtime": "nodejs22",
+    "predeploy": [
+      "npm run build -w @crm/shared",
+      "npm run build -w @crm/functions"
+    ]
+  },
+  "hosting": {
+    "public": "packages/web/dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

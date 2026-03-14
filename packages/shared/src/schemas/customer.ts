@@ -13,6 +13,7 @@ export const Customer = Schema.Struct({
   website: Schema.optional(Schema.String),
   orgNumber: Schema.optional(Schema.String),
   legalName: Schema.optional(Schema.String),
+  mrr: Schema.optional(Schema.Number),
   createdAt: Schema.String,
   updatedAt: Schema.String,
 });

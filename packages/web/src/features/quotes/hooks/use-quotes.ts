@@ -1,8 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  collection,
   addDoc,
-  doc,
   updateDoc,
   deleteDoc,
   onSnapshot,
@@ -11,7 +9,8 @@ import {
   getDocs,
   where,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { partnerCol, partnerDocRef } from "@/lib/firebase-partner";
+import { usePartner } from "@/lib/partner";
 import type { Quote } from "@crm/shared";
 
 export interface QuoteFormData {
@@ -36,7 +35,7 @@ export interface QuoteFormData {
   language: "sv" | "en";
 }
 
-export async function generateQuoteNumber(): Promise<string> {
+export async function generateQuoteNumber(partnerId: string): Promise<string> {
   const now = new Date();
   const dateStr =
     now.getFullYear().toString() +
@@ -45,7 +44,7 @@ export async function generateQuoteNumber(): Promise<string> {
   const prefix = `Q-${dateStr}`;
 
   const q = query(
-    collection(db, "quotes"),
+    partnerCol(partnerId, "quotes"),
     where("quoteNumber", ">=", prefix),
     where("quoteNumber", "<=", prefix + "\uf8ff"),
     orderBy("quoteNumber", "desc")
@@ -60,12 +59,21 @@ export async function generateQuoteNumber(): Promise<string> {
 }
 
 export function useQuotes() {
+  const { partnerId } = usePartner();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
+  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
+    // Prevent double-subscription in StrictMode
+    if (isSubscribedRef.current) {
+      return;
+    }
+
+    isSubscribedRef.current = true;
+
     const q = query(
-      collection(db, "quotes"),
+      partnerCol(partnerId, "quotes"),
       orderBy("createdAt", "desc")
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -76,13 +84,17 @@ export function useQuotes() {
       setQuotes(data);
       setLoading(false);
     });
-    return unsubscribe;
-  }, []);
+
+    return () => {
+      unsubscribe();
+      isSubscribedRef.current = false;
+    };
+  }, [partnerId]);
 
   const addQuote = useCallback(async (data: QuoteFormData) => {
     const now = new Date().toISOString();
     const quoteNumber =
-      data.quoteNumber || (await generateQuoteNumber());
+      data.quoteNumber || (await generateQuoteNumber(partnerId));
 
     const payload = {
       customerId: data.customerId,
@@ -104,24 +116,24 @@ export function useQuotes() {
       updatedAt: now,
     };
 
-    const ref = await addDoc(collection(db, "quotes"), payload);
+    const ref = await addDoc(partnerCol(partnerId, "quotes"), payload);
     return { id: ref.id, quoteNumber };
-  }, []);
+  }, [partnerId]);
 
   const updateQuote = useCallback(
     async (id: string, data: Partial<QuoteFormData>) => {
       const now = new Date().toISOString();
-      await updateDoc(doc(db, "quotes", id), {
+      await updateDoc(partnerDocRef(partnerId, "quotes", id), {
         ...data,
         updatedAt: now,
       });
     },
-    []
+    [partnerId]
   );
 
   const deleteQuote = useCallback(async (id: string) => {
-    await deleteDoc(doc(db, "quotes", id));
-  }, []);
+    await deleteDoc(partnerDocRef(partnerId, "quotes", id));
+  }, [partnerId]);
 
   return {
     quotes,
@@ -129,6 +141,6 @@ export function useQuotes() {
     addQuote,
     updateQuote,
     deleteQuote,
-    generateQuoteNumber,
+    generateQuoteNumber: (pid?: string) => generateQuoteNumber(pid ?? partnerId),
   };
 }

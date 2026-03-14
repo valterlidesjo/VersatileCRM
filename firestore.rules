@@ -1,0 +1,204 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================================
+    // HELPER FUNCTIONS
+    // ============================================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Reads the allowedEmails doc once and caches the data map.
+    // All role/partner helpers call this to avoid repeated get() calls.
+    function allowedEmailData() {
+      let ref = /databases/$(database)/documents/allowedEmails/$(request.auth.token.email);
+      return isAuthenticated() && exists(ref) ? get(ref).data : null;
+    }
+
+    function getUserRole() {
+      let d = allowedEmailData();
+      return d != null ? d.get('role', null) : null;
+    }
+
+    function getUserPartnerId() {
+      let d = allowedEmailData();
+      return d != null ? d.get('partnerId', null) : null;
+    }
+
+    function getPlatformRole() {
+      let d = allowedEmailData();
+      return d != null ? d.get('platformRole', null) : null;
+    }
+
+    // SuperAdmin = platformRole field is exactly "superAdmin" in allowedEmails doc.
+    // Make sure the Firestore document has: { platformRole: "superAdmin", ... }
+    function isSuperAdmin() {
+      return getPlatformRole() == 'superAdmin';
+    }
+
+    function isAdmin() {
+      return getUserRole() == 'admin';
+    }
+
+    function isUser() {
+      return getUserRole() == 'user';
+    }
+
+    // True when the caller's partnerId matches the given partnerId.
+    function isMemberOf(partnerId) {
+      return getUserPartnerId() == partnerId;
+    }
+
+    function hasValidTimestamps() {
+      return request.resource.data.keys().hasAll(['createdAt', 'updatedAt']) &&
+             request.resource.data.createdAt is string &&
+             request.resource.data.updatedAt is string;
+    }
+
+    function preservesCreatedAt() {
+      return !('createdAt' in request.resource.data) ||
+             request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    // ============================================================================
+    // PARTNERS COLLECTION
+    // ============================================================================
+    match /partners/{partnerId} {
+      // SuperAdmin: full access to every partner doc
+      allow read, write, delete: if isSuperAdmin();
+      // Partner members: read own partner doc, admins may write it
+      allow read: if isAuthenticated() && isMemberOf(partnerId);
+      allow write: if isAuthenticated() && isMemberOf(partnerId) && isAdmin();
+
+      // MEMBERS subcollection
+      match /members/{memberId} {
+        allow read, write, delete: if isSuperAdmin();
+        allow read: if isAuthenticated() && isMemberOf(partnerId);
+        allow write, delete: if isAuthenticated() && isMemberOf(partnerId) && isAdmin();
+      }
+
+      // CUSTOMERS
+      match /customers/{customerId} {
+        allow read, write, delete: if isSuperAdmin();
+        allow read, write, delete: if isMemberOf(partnerId) && isAdmin();
+        allow read: if isMemberOf(partnerId) && isUser();
+        allow create: if isMemberOf(partnerId) && isUser() && hasValidTimestamps();
+        allow update: if isMemberOf(partnerId) && isUser() && hasValidTimestamps() && preservesCreatedAt();
+      }
+
+      // CONTACT USERS
+      match /contactUsers/{userId} {
+        allow read, write, delete: if isSuperAdmin();
+        allow read, write, delete: if isMemberOf(partnerId) && isAdmin();
+        allow read: if isMemberOf(partnerId) && isUser();
+        allow create: if isMemberOf(partnerId) && isUser() && hasValidTimestamps();
+        allow update: if isMemberOf(partnerId) && isUser() && hasValidTimestamps() && preservesCreatedAt();
+      }
+
+      // MEETINGS
+      match /meetings/{meetingId} {
+        allow read, write, delete: if isSuperAdmin();
+        allow read, write, delete: if isMemberOf(partnerId) && isAdmin();
+        allow read: if isMemberOf(partnerId) && isUser();
+        allow create: if isMemberOf(partnerId) && isUser() && hasValidTimestamps();
+        allow update: if isMemberOf(partnerId) && isUser() && hasValidTimestamps() && preservesCreatedAt();
+      }
+
+      // DEALS
+      match /deals/{dealId} {
+        allow read, write, delete: if isSuperAdmin();
+        allow read, write, delete: if isMemberOf(partnerId) && isAdmin();
+        allow read: if isMemberOf(partnerId) && isUser();
+        allow create: if isMemberOf(partnerId) && isUser() && hasValidTimestamps();
+        allow update: if isMemberOf(partnerId) && isUser() && hasValidTimestamps() && preservesCreatedAt();
+      }
+
+      // CONTACTS
+      match /contacts/{contactId} {
+        allow read, write, delete: if isSuperAdmin();
+        allow read, write, delete: if isMemberOf(partnerId) && isAdmin();
+        allow read: if isMemberOf(partnerId) && isUser();
+        allow create: if isMemberOf(partnerId) && isUser() && hasValidTimestamps();
+        allow update: if isMemberOf(partnerId) && isUser() && hasValidTimestamps() && preservesCreatedAt();
+      }
+
+      // QUOTES
+      match /quotes/{quoteId} {
+        allow read, write, delete: if isSuperAdmin();
+        allow read, write, delete: if isMemberOf(partnerId) && isAdmin();
+        allow read: if isMemberOf(partnerId) && isUser();
+        allow create: if isMemberOf(partnerId) && isUser() && hasValidTimestamps();
+        allow update: if isMemberOf(partnerId) && isUser() && hasValidTimestamps() && preservesCreatedAt();
+      }
+
+      // META (invoice counters, internal sequences — admin-only)
+      match /meta/{docId} {
+        allow read, write, delete: if isSuperAdmin();
+        allow read, write: if isMemberOf(partnerId) && isAdmin();
+      }
+
+      // INVOICES
+      match /invoices/{invoiceId} {
+        allow read, write, delete: if isSuperAdmin();
+        allow read, write, delete: if isMemberOf(partnerId) && isAdmin();
+        allow read: if isMemberOf(partnerId) && isUser();
+      }
+
+      // JOURNAL ENTRIES
+      match /journalEntries/{entryId} {
+        allow read, write, delete: if isSuperAdmin();
+        allow read, write, delete: if isMemberOf(partnerId) && isAdmin();
+        allow read: if isMemberOf(partnerId) && isUser();
+      }
+
+      // COMPANY PROFILE
+      match /companyProfile/{docId} {
+        allow read, write, delete: if isSuperAdmin();
+        allow read, write, delete: if isMemberOf(partnerId) && isAdmin();
+        allow read: if isMemberOf(partnerId) && isUser();
+      }
+
+      // PRODUCTS (inventory)
+      match /products/{productId} {
+        allow read, write, delete: if isSuperAdmin();
+        allow read, write, delete: if isMemberOf(partnerId) && isAdmin();
+        allow read: if isMemberOf(partnerId) && isUser();
+        allow create: if isMemberOf(partnerId) && isUser() && hasValidTimestamps();
+        allow update: if isMemberOf(partnerId) && isUser() && hasValidTimestamps() && preservesCreatedAt();
+      }
+
+      // INTEGRATIONS (Shopify credentials — admin-only)
+      match /integrations/{integrationId} {
+        allow read, write, delete: if isSuperAdmin();
+        allow read, write, delete: if isMemberOf(partnerId) && isAdmin();
+      }
+    }
+
+    // ============================================================================
+    // ALLOWED EMAILS
+    // ============================================================================
+    match /allowedEmails/{emailId} {
+      // SuperAdmin: full access to all email documents
+      allow read, write, delete: if isSuperAdmin();
+
+      // Admin: can only read/manage emails that belong to their own partner.
+      // Uses resource.data for read/update/delete (existing doc),
+      // and request.resource.data for create (new doc).
+      allow read, update, delete: if isAdmin() && resource.data.partnerId == getUserPartnerId();
+      allow create: if isAdmin() && request.resource.data.partnerId == getUserPartnerId();
+
+      // Any authenticated user can read their own allowedEmails document.
+      allow read: if isAuthenticated() && request.auth.token.email == emailId;
+    }
+
+    // ============================================================================
+    // DEFAULT DENY
+    // ============================================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

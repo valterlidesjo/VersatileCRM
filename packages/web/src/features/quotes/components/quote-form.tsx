@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Plus } from "lucide-react";
 import { useCustomers } from "@/features/customers/hooks/use-customers";
-import { useProfile } from "@/features/profile/hooks/use-profile";
-import { useQuotes, type QuoteFormData, generateQuoteNumber } from "../hooks/use-quotes";
+import { useCompanyProfile } from "@/features/profile/hooks/use-profile";
+import { useQuotes, type QuoteFormData } from "../hooks/use-quotes";
 import { QuoteLineItem } from "./quote-line-item";
 import { ProfitabilityCard } from "./profitability-card";
 import { calcQuoteTotals, type QuoteLineData, type CostEntry } from "../utils/calculations";
@@ -29,8 +29,8 @@ interface QuoteFormProps {
 
 export function QuoteForm({ existingQuote, onSaved }: QuoteFormProps) {
   const { customers } = useCustomers();
-  const { profile } = useProfile();
-  const { addQuote, updateQuote } = useQuotes();
+  const { profile } = useCompanyProfile();
+  const { addQuote, updateQuote, generateQuoteNumber } = useQuotes();
 
   const [customerId, setCustomerId] = useState(
     existingQuote?.customerId ?? ""

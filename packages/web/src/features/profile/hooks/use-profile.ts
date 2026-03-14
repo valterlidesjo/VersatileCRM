@@ -1,19 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
-import {
-  collection,
-  addDoc,
-  doc,
-  updateDoc,
-  onSnapshot,
-  query,
-  where,
-  limit,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useAuth } from "@/lib/auth";
-import type { Profile } from "@crm/shared";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { setDoc, onSnapshot } from "firebase/firestore";
+import { partnerSingleDoc } from "@/lib/firebase-partner";
+import { usePartner } from "@/lib/partner";
+import type { CompanyProfile } from "@crm/shared";
 
-export interface ProfileFormData {
+export interface CompanyProfileFormData {
   orgNumber: string;
   legalName: string;
   bank: string;
@@ -22,50 +13,48 @@ export interface ProfileFormData {
   phone: string;
   email: string;
   website: string;
-  goal: string;
+  incomeGoal: number | "";
+  mrrGoal: number | "";
+  goalDeadline: string;
+  goalDescription: string;
   fSkatt: boolean;
 }
 
-export function useProfile() {
-  const authState = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
+export function useCompanyProfile() {
+  const { partnerId } = usePartner();
+  const [profile, setProfile] = useState<CompanyProfile | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const userId =
-    authState.status === "authenticated" ? authState.user.uid : null;
+  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
-    if (!userId) {
-      setLoading(false);
+    // Prevent double-subscription in StrictMode
+    if (isSubscribedRef.current) {
       return;
     }
 
-    const q = query(
-      collection(db, "profiles"),
-      where("userId", "==", userId),
-      limit(1)
-    );
+    isSubscribedRef.current = true;
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (snapshot.empty) {
+    const profileRef = partnerSingleDoc(partnerId, "companyProfile", "main");
+    const unsubscribe = onSnapshot(profileRef, (snapshot) => {
+      if (!snapshot.exists()) {
         setProfile(null);
       } else {
-        const d = snapshot.docs[0];
-        setProfile({ id: d.id, ...d.data() } as Profile);
+        setProfile({ id: snapshot.id, ...snapshot.data() } as CompanyProfile);
       }
       setLoading(false);
     });
 
-    return unsubscribe;
-  }, [userId]);
+    return () => {
+      unsubscribe();
+      isSubscribedRef.current = false;
+    };
+  }, [partnerId]);
 
   const saveProfile = useCallback(
-    async (data: ProfileFormData) => {
-      if (!userId) return;
+    async (data: CompanyProfileFormData) => {
       const now = new Date().toISOString();
 
       const payload = {
-        userId,
         orgNumber: data.orgNumber,
         legalName: data.legalName,
         bank: data.bank,
@@ -75,20 +64,23 @@ export function useProfile() {
         ...(data.phone && { phone: data.phone }),
         ...(data.email && { email: data.email }),
         ...(data.website && { website: data.website }),
-        ...(data.goal && { goal: data.goal }),
+        ...(data.incomeGoal !== "" && { incomeGoal: data.incomeGoal }),
+        ...(data.mrrGoal !== "" && { mrrGoal: data.mrrGoal }),
+        ...(data.goalDeadline && { goalDeadline: data.goalDeadline }),
+        ...(data.goalDescription && {
+          goalDescription: data.goalDescription,
+        }),
         updatedAt: now,
+        ...(!profile && { createdAt: now }),
       };
 
-      if (profile) {
-        await updateDoc(doc(db, "profiles", profile.id), payload);
-      } else {
-        await addDoc(collection(db, "profiles"), {
-          ...payload,
-          createdAt: now,
-        });
-      }
+      await setDoc(
+        partnerSingleDoc(partnerId, "companyProfile", "main"),
+        payload,
+        { merge: true }
+      );
     },
-    [userId, profile]
+    [partnerId, profile]
   );
 
   return { profile, loading, saveProfile };

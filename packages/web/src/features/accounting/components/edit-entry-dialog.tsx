@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -28,13 +27,14 @@ const VAT_OPTIONS: { value: VatRate; label: string }[] = [
 const INPUT_CLASS = "w-full rounded-md border border-border bg-background px-3 py-2 text-sm";
 
 export function EditEntryDialog({ open, onOpenChange, entry, onSave }: EditEntryDialogProps) {
-  const form = useTransactionForm();
-
-  useEffect(() => {
-    if (entry) {
-      form.populate(entry);
-    }
-  }, [entry]);
+  const form = useTransactionForm(entry ? {
+    transactionType: entry.transactionType,
+    categoryId: entry.category,
+    amount: String(entry.totalAmount),
+    date: entry.date,
+    description: entry.description,
+    vatRate: entry.vatRate,
+  } : undefined);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

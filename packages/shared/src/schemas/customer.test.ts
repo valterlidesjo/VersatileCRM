@@ -27,9 +27,26 @@ describe("Customer schema", () => {
       website: "https://acme.se",
       orgNumber: "556677-8899",
       legalName: "Acme Aktiebolag",
+      mrr: 10000,
     };
     const result = Schema.decodeUnknownEither(Customer)(full);
     expect(result._tag).toBe("Right");
+  });
+
+  it("should accept customer with mrr status and mrr value", () => {
+    const withMrr = {
+      ...validCustomer,
+      status: "mrr" as const,
+      mrr: 15000,
+    };
+    const result = Schema.decodeUnknownEither(Customer)(withMrr);
+    expect(result._tag).toBe("Right");
+  });
+
+  it("should reject non-numeric mrr value", () => {
+    const invalid = { ...validCustomer, mrr: "10000" };
+    const result = Schema.decodeUnknownEither(Customer)(invalid);
+    expect(result._tag).toBe("Left");
   });
 
   it("should reject a customer missing required name", () => {

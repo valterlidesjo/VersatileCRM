@@ -1,0 +1,96 @@
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+
+interface CancelInvoiceDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  invoiceNumber: string;
+  onConfirm: (reason: string) => Promise<void>;
+}
+
+export function CancelInvoiceDialog({
+  open,
+  onOpenChange,
+  invoiceNumber,
+  onConfirm,
+}: CancelInvoiceDialogProps) {
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!reason.trim()) return;
+    setSubmitting(true);
+    try {
+      await onConfirm(reason.trim());
+      setReason("");
+      onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function handleOpenChange(open: boolean) {
+    if (!submitting) {
+      setReason("");
+      onOpenChange(open);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Annullera faktura {invoiceNumber}</DialogTitle>
+          <DialogDescription>
+            Ange anledningen till att fakturan annulleras. Detta kan inte ångras.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label
+              htmlFor="cancel-reason"
+              className="text-sm font-medium text-foreground"
+            >
+              Anledning <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              id="cancel-reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Beskriv varför fakturan annulleras..."
+              rows={4}
+              disabled={submitting}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 resize-none"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => handleOpenChange(false)}
+              disabled={submitting}
+              className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              Avbryt
+            </button>
+            <button
+              type="submit"
+              disabled={!reason.trim() || submitting}
+              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+            >
+              {submitting ? "Annullerar..." : "Annullera faktura"}
+            </button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
