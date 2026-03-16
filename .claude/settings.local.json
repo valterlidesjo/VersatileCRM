@@ -77,7 +77,9 @@
       "Skill(plan-ceo-review:*)",
       "Bash(gcloud run:*)",
       "Skill(ship)",
-      "Skill(ship:*)"
+      "Skill(ship:*)",
+      "Bash(firebase --version)",
+      "Bash(git commit:*)"
     ],
     "deny": [
       "Bash(rm -rf*)",

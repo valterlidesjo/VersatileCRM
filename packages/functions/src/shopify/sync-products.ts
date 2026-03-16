@@ -139,12 +139,21 @@ export const syncShopifyProducts = onCall<SyncShopifyProductsInput>(
       throw new HttpsError("unauthenticated", "Must be authenticated");
     }
 
+    const db = getFirestore();
+
+    const callerEmail = request.auth.token.email;
+    if (!callerEmail) {
+      throw new HttpsError("unauthenticated", "Must be authenticated with email");
+    }
+    const allowedEmailSnap = await db.doc(`allowedEmails/${callerEmail}`).get();
+    if (allowedEmailSnap.data()?.platformRole !== "superAdmin") {
+      throw new HttpsError("permission-denied", "Only superAdmins can sync Shopify products");
+    }
+
     const { partnerId } = request.data;
     if (!partnerId) {
       throw new HttpsError("invalid-argument", "partnerId is required");
     }
-
-    const db = getFirestore();
 
     // Load Shopify config
     const configSnap = await db

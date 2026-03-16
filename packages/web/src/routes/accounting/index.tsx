@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Upload, FileDown } from "lucide-react";
 import { PageContainer } from "@/components/layout/page-container";
@@ -17,12 +17,22 @@ import { requireAdmin } from "@/lib/route-guards";
 import type { JournalEntry } from "@crm/shared";
 import type { ParsedImportEntry } from "@/features/accounting/utils/csv-import";
 
+const PERIOD_STORAGE_KEY = "accounting-period";
+
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
   { value: "this-month", label: "Denna månad" },
   { value: "last-month", label: "Förra månaden" },
   { value: "this-quarter", label: "Detta kvartal" },
   { value: "last-quarter", label: "Förra kvartalet" },
+  { value: "all-time", label: "Sedan start" },
 ];
+
+function savedPeriod(): Period {
+  const saved = localStorage.getItem(PERIOD_STORAGE_KEY);
+  return PERIOD_OPTIONS.some((o) => o.value === saved)
+    ? (saved as Period)
+    : "this-month";
+}
 
 export const Route = createFileRoute("/accounting/")({
   beforeLoad: ({ context }) => requireAdmin(context.auth),
@@ -30,7 +40,13 @@ export const Route = createFileRoute("/accounting/")({
 });
 
 function AccountingPage() {
-  const [period, setPeriod] = useState<Period>("this-month");
+  const [period, setPeriod] = useState<Period>(savedPeriod);
+
+  const handlePeriodChange = useCallback((next: Period) => {
+    setPeriod(next);
+    localStorage.setItem(PERIOD_STORAGE_KEY, next);
+  }, []);
+
   const dateRange = derivePeriodRange(period);
   const { entries, loading, addEntry, updateEntry, deleteEntry } =
     useJournalEntries(dateRange);
@@ -89,7 +105,7 @@ function AccountingPage() {
         <div className="flex items-center gap-2 justify-end">
           <select
             value={period}
-            onChange={(e) => setPeriod(e.target.value as Period)}
+            onChange={(e) => handlePeriodChange(e.target.value as Period)}
             className="rounded-md border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
           >
             {PERIOD_OPTIONS.map((opt) => (

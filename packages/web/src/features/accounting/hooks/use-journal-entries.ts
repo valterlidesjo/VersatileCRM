@@ -42,7 +42,7 @@ export function useJournalEntries(dateRange?: DateRange) {
       : query(
           partnerCol(partnerId, "journalEntries"),
           orderBy("date", "desc"),
-          limit(200)
+          limit(500)
         );
     const unsubscribe = onSnapshot(
       q,

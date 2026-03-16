@@ -2,7 +2,8 @@ export type Period =
   | "this-month"
   | "last-month"
   | "this-quarter"
-  | "last-quarter";
+  | "last-quarter"
+  | "all-time";
 
 export interface DateRange {
   /** First day of period, inclusive — YYYY-MM-DD */
@@ -24,7 +25,9 @@ function toISODate(year: number, month: number, day: number): string {
  * @param period - The period to derive a range for
  * @param today  - Reference date (defaults to now; injectable for testing)
  */
-export function derivePeriodRange(period: Period, today = new Date()): DateRange {
+export function derivePeriodRange(period: Period, today = new Date()): DateRange | undefined {
+  if (period === "all-time") return undefined;
+
   const year = today.getFullYear();
   const month = today.getMonth() + 1; // 1-12
 

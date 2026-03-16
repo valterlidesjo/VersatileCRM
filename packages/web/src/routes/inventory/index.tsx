@@ -8,6 +8,7 @@ import { PrivateSaleDialog } from "@/features/inventory/components/private-sale-
 import { ShopifySyncDialog } from "@/features/inventory/components/shopify-sync-dialog";
 import { useProducts } from "@/features/inventory/hooks/use-products";
 import { requireAdmin } from "@/lib/route-guards";
+import { useIsSuperAdmin } from "@/lib/auth";
 import { Plus, RefreshCw } from "lucide-react";
 import type { Product } from "@crm/shared";
 
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/inventory/")({
 });
 
 function InventoryPage() {
+  const isSuperAdmin = useIsSuperAdmin();
   const { products, loading } = useProducts();
   const [showAdd, setShowAdd] = useState(false);
   const [showSync, setShowSync] = useState(false);
@@ -28,14 +30,16 @@ function InventoryPage() {
       <div className="space-y-6">
         {/* Action bar */}
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => setShowSync(true)}
-            className="flex items-center gap-1.5 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Synka Shopify
-          </button>
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => setShowSync(true)}
+              className="flex items-center gap-1.5 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Synka Shopify
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowAdd(true)}

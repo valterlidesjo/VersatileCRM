@@ -14,10 +14,12 @@ interface SyncResult {
 
 interface ShopifySyncDialogProps {
   onClose: () => void;
+  targetPartnerId?: string;
 }
 
-export function ShopifySyncDialog({ onClose }: ShopifySyncDialogProps) {
-  const { partnerId } = usePartner();
+export function ShopifySyncDialog({ onClose, targetPartnerId }: ShopifySyncDialogProps) {
+  const { partnerId: contextPartnerId } = usePartner();
+  const partnerId = targetPartnerId ?? contextPartnerId;
 
   const [tab, setTab] = useState<"sync" | "settings">("sync");
   const [config, setConfig] = useState<{

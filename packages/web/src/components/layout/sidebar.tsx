@@ -15,6 +15,7 @@ import {
   Package,
   PanelLeftClose,
   PanelLeftOpen,
+  ShoppingBag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserRole, useIsSuperAdmin, signOut } from "@/lib/auth";
@@ -145,6 +146,14 @@ export function Sidebar() {
             >
               <Building2 className="h-4 w-4 shrink-0" />
               {!collapsed && "Partners"}
+            </Link>
+            <Link
+              to="/superadmin/shopify"
+              title={collapsed ? "Shopify" : undefined}
+              className={navLinkClass(currentPath.startsWith("/superadmin/shopify"))}
+            >
+              <ShoppingBag className="h-4 w-4 shrink-0" />
+              {!collapsed && "Shopify"}
             </Link>
           </>
         )}
