@@ -86,12 +86,12 @@ export function ExportInvoicesDialog({
   }, {});
 
   const STATUS_LABELS: Record<string, string> = {
-    draft: "Utkast",
-    created: "Skapad",
-    sent: "Skickad",
-    paid: "Betald",
-    overdue: "Förfallen",
-    cancelled: "Annullerad",
+    draft: "Draft",
+    created: "Created",
+    sent: "Sent",
+    paid: "Paid",
+    overdue: "Overdue",
+    cancelled: "Cancelled",
   };
 
   return (
@@ -108,7 +108,7 @@ export function ExportInvoicesDialog({
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-2">
             <FileDown className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-lg font-semibold">Exportera fakturor till CSV</h2>
+            <h2 className="text-lg font-semibold">Export invoices to CSV</h2>
           </div>
           <button
             type="button"
@@ -124,18 +124,18 @@ export function ExportInvoicesDialog({
           <div>
             <div className="flex items-center gap-2 mb-3">
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Tidsperiod</span>
+              <span className="text-sm font-medium">Time period</span>
             </div>
 
             {/* Presets */}
             <div className="flex flex-wrap gap-2 mb-3">
               {(
                 [
-                  ["all", "Alla"],
-                  ["thisMonth", "Denna månad"],
-                  ["lastMonth", "Förra månad"],
-                  ["thisYear", "I år"],
-                  ["lastYear", "Förra år"],
+                  ["all", "All"],
+                  ["thisMonth", "This month"],
+                  ["lastMonth", "Last month"],
+                  ["thisYear", "This year"],
+                  ["lastYear", "Last year"],
                 ] as const
               ).map(([preset, label]) => (
                 <button
@@ -152,7 +152,7 @@ export function ExportInvoicesDialog({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Från (fakturadatum)
+                  From (invoice date)
                 </label>
                 <input
                   type="date"
@@ -164,7 +164,7 @@ export function ExportInvoicesDialog({
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Till (fakturadatum)
+                  To (invoice date)
                 </label>
                 <input
                   type="date"
@@ -177,7 +177,7 @@ export function ExportInvoicesDialog({
 
             {!dateFrom && !dateTo && (
               <p className="mt-1.5 text-xs text-muted-foreground">
-                Inga datum angivna — exporterar alla fakturor.
+                No dates specified — exporting all invoices.
               </p>
             )}
           </div>
@@ -186,24 +186,24 @@ export function ExportInvoicesDialog({
           {matchCount > 0 ? (
             <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
               <p className="text-sm font-medium">
-                {matchCount} faktura{matchCount !== 1 ? "or" : ""} matchar
+                {matchCount} invoice{matchCount !== 1 ? "s" : ""} match
               </p>
 
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div>
-                  <p className="text-xs text-muted-foreground">Exkl. moms</p>
+                  <p className="text-xs text-muted-foreground">Excl. VAT</p>
                   <p className="text-sm font-semibold tabular-nums">
                     {totalExcl.toLocaleString("sv-SE", { minimumFractionDigits: 0 })} kr
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Moms</p>
+                  <p className="text-xs text-muted-foreground">VAT</p>
                   <p className="text-sm font-semibold tabular-nums">
                     {totalVat.toLocaleString("sv-SE", { minimumFractionDigits: 0 })} kr
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Totalt inkl.</p>
+                  <p className="text-xs text-muted-foreground">Total incl.</p>
                   <p className="text-sm font-semibold tabular-nums">
                     {totalIncl.toLocaleString("sv-SE", { minimumFractionDigits: 0 })} kr
                   </p>
@@ -227,7 +227,7 @@ export function ExportInvoicesDialog({
           ) : (
             <div className="rounded-lg border border-border bg-muted/20 p-4">
               <p className="text-sm text-muted-foreground text-center">
-                Inga fakturor matchar den valda perioden.
+                No invoices match the selected period.
               </p>
             </div>
           )}
@@ -236,10 +236,10 @@ export function ExportInvoicesDialog({
           {exported && (
             <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3">
               <p className="text-sm text-green-700 font-medium">
-                {exportedCount} faktura{exportedCount !== 1 ? "or" : ""} exporterades!
+                {exportedCount} invoice{exportedCount !== 1 ? "s" : ""} exported!
               </p>
               <p className="text-xs text-green-600 mt-0.5">
-                Filen öppnas automatiskt i din nedladdningsmapp.
+                The file will open automatically in your downloads folder.
               </p>
             </div>
           )}
@@ -247,7 +247,7 @@ export function ExportInvoicesDialog({
           {/* CSV column info */}
           <details className="group">
             <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground select-none">
-              Visa exporterade kolumner
+              Show exported columns
             </summary>
             <div className="mt-2 text-xs text-muted-foreground font-mono bg-muted/30 rounded-md px-3 py-2 leading-relaxed">
               invoiceNumber, invoiceRef, customerName, invoiceDate, dueDate, paidDate, status, subtotal, vatAmount, totalAmount, currency, overdueInterestRate, isInternational, language, notes, createdAt
@@ -262,7 +262,7 @@ export function ExportInvoicesDialog({
             onClick={onClose}
             className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
           >
-            Stäng
+            Close
           </button>
           <button
             type="button"
@@ -271,7 +271,7 @@ export function ExportInvoicesDialog({
             className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             <Download className="h-4 w-4" />
-            Exportera {matchCount > 0 ? `${matchCount} st` : ""}
+            Export {matchCount > 0 ? `${matchCount}` : ""}
           </button>
         </div>
       </div>

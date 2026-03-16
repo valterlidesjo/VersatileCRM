@@ -2,14 +2,14 @@ import { useState, useMemo } from "react";
 import { BAS_ACCOUNTS } from "@crm/shared";
 
 const ACCOUNT_CLASS_NAMES: Record<number, string> = {
-  1: "Tillgångar",
-  2: "Eget kapital & skulder",
-  3: "Intäkter",
-  4: "Material & varor",
-  5: "Lokalkostnader m.m.",
-  6: "Övriga externa kostnader",
-  7: "Personal",
-  8: "Finansiella poster & skatt",
+  1: "Assets",
+  2: "Equity & liabilities",
+  3: "Revenue",
+  4: "Materials & goods",
+  5: "Premises costs etc.",
+  6: "Other external costs",
+  7: "Personnel",
+  8: "Financial items & tax",
 };
 
 export function AccountList() {
@@ -46,7 +46,7 @@ export function AccountList() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Sök kontonummer eller namn..."
+          placeholder="Search account number or name..."
           className="w-64 rounded-md border border-border bg-background px-3 py-2 text-sm"
         />
         <select
@@ -56,7 +56,7 @@ export function AccountList() {
           }
           className="rounded-md border border-border bg-background px-3 py-2 text-sm"
         >
-          <option value="">Alla kontoklasser</option>
+          <option value="">All account classes</option>
           {Object.entries(ACCOUNT_CLASS_NAMES).map(([cls, name]) => (
             <option key={cls} value={cls}>
               {cls} — {name}
@@ -70,14 +70,14 @@ export function AccountList() {
         .map(([cls, accounts]) => (
           <div key={cls}>
             <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
-              Klass {cls} — {ACCOUNT_CLASS_NAMES[Number(cls)]}
+              Class {cls} — {ACCOUNT_CLASS_NAMES[Number(cls)]}
             </h3>
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full">
                 <thead className="bg-muted">
                   <tr className="text-sm font-medium">
-                    <th className="px-3 py-2 text-left">Konto</th>
-                    <th className="px-3 py-2 text-left">Namn</th>
+                    <th className="px-3 py-2 text-left">Account</th>
+                    <th className="px-3 py-2 text-left">Name</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -99,7 +99,7 @@ export function AccountList() {
         ))}
 
       {filtered.length === 0 && (
-        <p className="text-center text-muted-foreground">Inga konton matchar sökningen.</p>
+        <p className="text-center text-muted-foreground">No accounts match the search.</p>
       )}
     </div>
   );

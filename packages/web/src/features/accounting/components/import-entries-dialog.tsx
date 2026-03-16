@@ -55,7 +55,7 @@ export function ImportEntriesDialog({
 
   function handleFile(file: File) {
     if (!file.name.endsWith(".csv")) {
-      setParseErrors(["Vänligen ladda upp en .csv-fil."]);
+      setParseErrors(["Please upload a .csv file."]);
       return;
     }
     const reader = new FileReader();
@@ -103,7 +103,7 @@ export function ImportEntriesDialog({
     } catch (err) {
       clearInterval(progressInterval);
       setImportErrors([
-        `Import misslyckades: ${err instanceof Error ? err.message : "Okänt fel"}`,
+        `Import failed: ${err instanceof Error ? err.message : "Unknown error"}`,
       ]);
     }
 
@@ -123,7 +123,7 @@ export function ImportEntriesDialog({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
           <h2 className="text-lg font-semibold">
-            Importera verifikationer från CSV
+            Import journal entries from CSV
           </h2>
           {step !== "importing" && (
             <button
@@ -144,17 +144,17 @@ export function ImportEntriesDialog({
               <div className="rounded-lg border border-border bg-muted/30 p-4 flex items-start gap-3">
                 <Download className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">CSV-mall</p>
+                  <p className="text-sm font-medium">CSV template</p>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Ladda ner mallen för att se rätt format. Varje rad i CSV:n
-                    blir en separat verifikation.
+                    Download the template to see the correct format. Each row in
+                    the CSV becomes a separate journal entry.
                   </p>
                   <button
                     type="button"
                     onClick={downloadTemplate}
                     className="mt-2 text-sm font-medium text-primary hover:underline"
                   >
-                    Ladda ner journal-entry-import-template.csv
+                    Download journal-entry-import-template.csv
                   </button>
                 </div>
               </div>
@@ -165,39 +165,39 @@ export function ImportEntriesDialog({
                   <thead>
                     <tr className="bg-muted/30 border-b border-border">
                       <th className="px-3 py-2 text-left font-medium text-muted-foreground">
-                        Kolumn
+                        Column
                       </th>
                       <th className="px-3 py-2 text-left font-medium text-muted-foreground">
-                        Obligatorisk
+                        Required
                       </th>
                       <th className="px-3 py-2 text-left font-medium text-muted-foreground">
-                        Format / exempel
+                        Format / example
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {[
-                      ["date", "Ja", "YYYY-MM-DD  ex. 2024-01-15"],
+                      ["date", "Yes", "YYYY-MM-DD  e.g. 2024-01-15"],
                       [
                         "transactionType",
-                        "Ja",
-                        '"cost" (kostnad) eller "income" (intäkt)',
+                        "Yes",
+                        '"cost" or "income"',
                       ],
                       [
                         "category",
-                        "Ja",
-                        "Kategori-ID från listan nedan  ex. office_supplies",
+                        "Yes",
+                        "Category ID from the list below, e.g. office_supplies",
                       ],
                       [
                         "totalAmount",
-                        "Ja",
-                        "Belopp inkl. moms  ex. 1250.00",
+                        "Yes",
+                        "Amount incl. VAT  e.g. 1250.00",
                       ],
-                      ["description", "Nej", "Fritext beskrivning"],
+                      ["description", "No", "Free text description"],
                       [
                         "vatRate",
-                        "Nej",
-                        "0 | 6 | 12 | 25  (standard: kategorins default)",
+                        "No",
+                        "0 | 6 | 12 | 25  (default: category's default)",
                       ],
                     ].map(([col, req, fmt]) => (
                       <tr
@@ -225,8 +225,8 @@ export function ImportEntriesDialog({
                   className="text-xs text-muted-foreground hover:text-foreground underline"
                 >
                   {showCategories
-                    ? "Dölj tillgängliga kategorier"
-                    : "Visa tillgängliga kategori-ID:n"}
+                    ? "Hide available categories"
+                    : "Show available category IDs"}
                 </button>
 
                 {showCategories && (
@@ -235,16 +235,16 @@ export function ImportEntriesDialog({
                       <thead>
                         <tr className="bg-muted/30 border-b border-border">
                           <th className="px-3 py-2 text-left font-medium text-muted-foreground">
-                            ID (används i CSV)
+                            ID (used in CSV)
                           </th>
                           <th className="px-3 py-2 text-left font-medium text-muted-foreground">
-                            Namn
+                            Name
                           </th>
                           <th className="px-3 py-2 text-left font-medium text-muted-foreground">
-                            Typ
+                            Type
                           </th>
                           <th className="px-3 py-2 text-left font-medium text-muted-foreground">
-                            Standard moms
+                            Default VAT
                           </th>
                         </tr>
                       </thead>
@@ -266,7 +266,7 @@ export function ImportEntriesDialog({
                                     : "text-green-600"
                                 }
                               >
-                                {cat.type === "cost" ? "Kostnad" : "Intäkt"}
+                                {cat.type === "cost" ? "Cost" : "Income"}
                               </span>
                             </td>
                             <td className="px-3 py-2 text-muted-foreground">
@@ -297,10 +297,10 @@ export function ImportEntriesDialog({
               >
                 <Upload className="h-8 w-8 text-muted-foreground" />
                 <p className="text-sm font-medium">
-                  Dra och släpp CSV-fil här
+                  Drag and drop CSV file here
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  eller klicka för att välja fil
+                  or click to select a file
                 </p>
                 <input
                   ref={fileRef}
@@ -315,7 +315,7 @@ export function ImportEntriesDialog({
               {parseErrors.length > 0 && (
                 <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-1">
                   <p className="text-sm font-medium text-red-700 flex items-center gap-1.5">
-                    <AlertTriangle className="h-4 w-4" /> Fel i CSV-filen
+                    <AlertTriangle className="h-4 w-4" /> Errors in CSV file
                   </p>
                   <ul className="list-disc list-inside space-y-0.5">
                     {parseErrors.map((e, i) => (
@@ -337,8 +337,7 @@ export function ImportEntriesDialog({
                   <span className="font-medium text-foreground">
                     {parsedEntries.length}
                   </span>{" "}
-                  verifikation{parsedEntries.length !== 1 ? "er" : ""} hittades
-                  i filen
+                  journal entr{parsedEntries.length !== 1 ? "ies" : "y"} found in file
                 </p>
                 <button
                   type="button"
@@ -351,7 +350,7 @@ export function ImportEntriesDialog({
                   }}
                   className="text-sm text-muted-foreground hover:text-foreground underline"
                 >
-                  Byt fil
+                  Change file
                 </button>
               </div>
 
@@ -359,7 +358,7 @@ export function ImportEntriesDialog({
               {parseWarnings.length > 0 && (
                 <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 space-y-1">
                   <p className="text-sm font-medium text-yellow-700 flex items-center gap-1.5">
-                    <AlertTriangle className="h-4 w-4" /> Varningar
+                    <AlertTriangle className="h-4 w-4" /> Warnings
                   </p>
                   <ul className="list-disc list-inside space-y-0.5">
                     {parseWarnings.map((w, i) => (
@@ -377,25 +376,25 @@ export function ImportEntriesDialog({
                   <thead>
                     <tr className="bg-muted/30 border-b border-border">
                       <th className="px-3 py-2 text-left font-medium text-muted-foreground">
-                        Datum
+                        Date
                       </th>
                       <th className="px-3 py-2 text-left font-medium text-muted-foreground">
-                        Beskrivning
+                        Description
                       </th>
                       <th className="px-3 py-2 text-left font-medium text-muted-foreground">
-                        Typ
+                        Type
                       </th>
                       <th className="px-3 py-2 text-left font-medium text-muted-foreground">
-                        Kategori
+                        Category
                       </th>
                       <th className="px-3 py-2 text-right font-medium text-muted-foreground">
-                        Belopp inkl.
+                        Amount incl.
                       </th>
                       <th className="px-3 py-2 text-right font-medium text-muted-foreground">
-                        Moms
+                        VAT
                       </th>
                       <th className="px-3 py-2 text-right font-medium text-muted-foreground">
-                        Momssats
+                        VAT rate
                       </th>
                     </tr>
                   </thead>
@@ -420,8 +419,8 @@ export function ImportEntriesDialog({
                             }
                           >
                             {entry.transactionType === "cost"
-                              ? "Kostnad"
-                              : "Intäkt"}
+                              ? "Cost"
+                              : "Income"}
                           </span>
                         </td>
                         <td className="px-3 py-2 text-muted-foreground text-xs font-mono">
@@ -446,7 +445,7 @@ export function ImportEntriesDialog({
                           colSpan={4}
                           className="px-3 py-2 text-sm font-medium text-muted-foreground"
                         >
-                          Totalt
+                          Total
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums font-medium">
                           {formatAmount(
@@ -475,7 +474,7 @@ export function ImportEntriesDialog({
             <div className="flex flex-col items-center gap-4 py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm font-medium">
-                Importerar verifikation {importProgress} av {importTotal}…
+                Importing entry {importProgress} of {importTotal}…
               </p>
               <div className="w-full max-w-xs rounded-full bg-muted h-2 overflow-hidden">
                 <div
@@ -493,13 +492,13 @@ export function ImportEntriesDialog({
             <div className="flex flex-col items-center gap-4 py-8">
               <CheckCircle2 className="h-10 w-10 text-green-600" />
               <p className="text-base font-semibold">
-                {importTotal - importErrors.length} av {importTotal}{" "}
-                verifikationer importerade!
+                {importTotal - importErrors.length} of {importTotal}{" "}
+                journal entries imported!
               </p>
               {importErrors.length > 0 && (
                 <div className="w-full rounded-lg border border-red-200 bg-red-50 p-4 space-y-1">
                   <p className="text-sm font-medium text-red-700">
-                    Fel vid import:
+                    Errors during import:
                   </p>
                   <ul className="list-disc list-inside space-y-0.5">
                     {importErrors.map((e, i) => (
@@ -522,7 +521,7 @@ export function ImportEntriesDialog({
               onClick={onClose}
               className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
             >
-              Avbryt
+              Cancel
             </button>
           )}
           {step === "preview" && (
@@ -532,15 +531,14 @@ export function ImportEntriesDialog({
                 onClick={onClose}
                 className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
               >
-                Avbryt
+                Cancel
               </button>
               <button
                 type="button"
                 onClick={handleImport}
                 className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
               >
-                Importera {parsedEntries.length} verifikation
-                {parsedEntries.length !== 1 ? "er" : ""}
+                Import {parsedEntries.length} journal entr{parsedEntries.length !== 1 ? "ies" : "y"}
               </button>
             </>
           )}
@@ -550,7 +548,7 @@ export function ImportEntriesDialog({
               onClick={onClose}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              Stäng
+              Close
             </button>
           )}
         </div>

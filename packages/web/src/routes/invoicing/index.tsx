@@ -32,7 +32,7 @@ function InvoicingPage() {
             onClick={() => setShowImport(true)}
             className="flex items-center gap-1.5 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
           >
-            <Upload className="h-4 w-4" /> Importera CSV
+            <Upload className="h-4 w-4" /> Import CSV
           </button>
 
           <button
@@ -41,7 +41,7 @@ function InvoicingPage() {
             disabled={invoices.length === 0}
             className="flex items-center gap-1.5 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
           >
-            <Download className="h-4 w-4" /> Exportera CSV
+            <Download className="h-4 w-4" /> Export CSV
           </button>
 
           <button
@@ -51,11 +51,11 @@ function InvoicingPage() {
           >
             {showForm ? (
               <>
-                <X className="h-4 w-4" /> Stäng
+                <X className="h-4 w-4" /> Close
               </>
             ) : (
               <>
-                <Plus className="h-4 w-4" /> Ny faktura
+                <Plus className="h-4 w-4" /> New invoice
               </>
             )}
           </button>
@@ -63,13 +63,13 @@ function InvoicingPage() {
 
         {showForm && (
           <div className="rounded-lg border border-border bg-background p-6">
-            <h2 className="mb-4 text-lg font-semibold">Ny faktura</h2>
+            <h2 className="mb-4 text-lg font-semibold">New invoice</h2>
             <InvoiceForm onSaved={() => setShowForm(false)} />
           </div>
         )}
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Laddar fakturor...</p>
+          <p className="text-sm text-muted-foreground">Loading invoices...</p>
         ) : (
           <InvoiceList invoices={invoices} customers={customers} onDelete={deleteInvoice} />
         )}

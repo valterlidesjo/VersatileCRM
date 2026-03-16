@@ -40,8 +40,7 @@ export function ProductList({
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <Package className="mb-3 h-10 w-10 text-muted-foreground/40" />
         <p className="text-sm text-muted-foreground">
-          Inga produkter ännu. Lägg till din första produkt eller synka från
-          Shopify.
+          No products yet. Add your first product or sync from Shopify.
         </p>
       </div>
     );
@@ -62,19 +61,19 @@ export function ProductList({
               <tr className="border-b border-border bg-muted/30">
                 <th className="py-2.5 px-4 text-left font-medium text-muted-foreground w-12" />
                 <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-                  Produkt
+                  Product
                 </th>
                 <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-                  Varianter
+                  Variants
                 </th>
                 <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-                  Totalt lager
+                  Total stock
                 </th>
                 <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
                   Shopify
                 </th>
                 <th className="py-2.5 px-4 text-right font-medium text-muted-foreground">
-                  Åtgärder
+                  Actions
                 </th>
               </tr>
             </thead>
@@ -143,11 +142,11 @@ export function ProductList({
                       {product.shopifyProductId ? (
                         <span className="inline-flex items-center gap-1 text-xs text-green-600">
                           <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                          Kopplad
+                          Linked
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">
-                          Ej kopplad
+                          Not linked
                         </span>
                       )}
                     </td>
@@ -161,14 +160,14 @@ export function ProductList({
                           className="flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted transition-colors"
                         >
                           <ShoppingCart className="h-3 w-3" />
-                          Sälj
+                          Sell
                         </button>
                         <button
                           type="button"
                           onClick={() => onAdjustStock(product)}
                           className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted transition-colors"
                         >
-                          Justera lager
+                          Adjust stock
                         </button>
                       </div>
                     </td>
@@ -188,8 +187,8 @@ export function ProductList({
 
   return (
     <>
-      {renderGroup(active, "Aktiva")}
-      {renderGroup(archived, "Arkiverade")}
+      {renderGroup(active, "Active")}
+      {renderGroup(archived, "Archived")}
     </>
   );
 }

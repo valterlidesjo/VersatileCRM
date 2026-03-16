@@ -143,7 +143,7 @@ export function InvoiceList({ invoices, customers, onDelete }: InvoiceListProps)
               <ChevronRight className="h-4 w-4" />
             )}
             <span className="h-2.5 w-2.5 rounded-full bg-gray-400" />
-            Annullerade ({cancelled.length})
+            Cancelled ({cancelled.length})
           </button>
 
           {cancelledExpanded && (
@@ -164,10 +164,10 @@ export function InvoiceList({ invoices, customers, onDelete }: InvoiceListProps)
                       Total
                     </th>
                     <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-                      Anledning
+                      Reason
                     </th>
                     <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-                      Annullerad
+                      Cancelled
                     </th>
                     <th className="py-2.5 px-4" />
                   </tr>
@@ -206,7 +206,7 @@ export function InvoiceList({ invoices, customers, onDelete }: InvoiceListProps)
                         {confirmDeleteId === inv.id ? (
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground whitespace-nowrap">
-                              Ta bort faktura?
+                              Delete invoice?
                             </span>
                             <button
                               type="button"
@@ -214,14 +214,14 @@ export function InvoiceList({ invoices, customers, onDelete }: InvoiceListProps)
                               disabled={deletingId === inv.id}
                               className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50 whitespace-nowrap"
                             >
-                              {deletingId === inv.id ? "Tar bort..." : "Ja, ta bort"}
+                              {deletingId === inv.id ? "Deleting..." : "Yes, delete"}
                             </button>
                             <button
                               type="button"
                               onClick={() => setConfirmDeleteId(null)}
                               className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors"
                             >
-                              Avbryt
+                              Cancel
                             </button>
                           </div>
                         ) : (
@@ -231,7 +231,7 @@ export function InvoiceList({ invoices, customers, onDelete }: InvoiceListProps)
                             className="flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                            Ta bort
+                            Delete
                           </button>
                         )}
                       </td>

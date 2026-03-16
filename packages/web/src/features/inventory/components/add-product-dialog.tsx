@@ -93,7 +93,7 @@ export function AddProductDialog({ onClose }: AddProductDialogProps) {
 
       onClose();
     } catch (err) {
-      setError("Något gick fel. Försök igen.");
+      setError("Something went wrong. Please try again.");
       console.error(err);
     } finally {
       setSaving(false);
@@ -105,7 +105,7 @@ export function AddProductDialog({ onClose }: AddProductDialogProps) {
       <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-border bg-background shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="text-lg font-semibold">Ny produkt</h2>
+          <h2 className="text-lg font-semibold">New product</h2>
           <button
             type="button"
             onClick={onClose}
@@ -120,40 +120,40 @@ export function AddProductDialog({ onClose }: AddProductDialogProps) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-sm font-medium">
-                Titel <span className="text-red-500">*</span>
+                Title <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
-                placeholder="T.ex. Rund spegel"
+                placeholder="e.g. Round mirror"
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
 
             <div>
               <label className="mb-1.5 block text-sm font-medium">
-                Leverantör / Varumärke
+                Vendor / Brand
               </label>
               <input
                 type="text"
                 value={vendor}
                 onChange={(e) => setVendor(e.target.value)}
-                placeholder="Valfritt"
+                placeholder="Optional"
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
 
             <div>
               <label className="mb-1.5 block text-sm font-medium">
-                Beskrivning
+                Description
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={2}
-                placeholder="Valfritt"
+                placeholder="Optional"
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 resize-none"
               />
             </div>
@@ -162,7 +162,7 @@ export function AddProductDialog({ onClose }: AddProductDialogProps) {
           {/* Image upload */}
           <div>
             <label className="mb-1.5 block text-sm font-medium">
-              Produktbild
+              Product image
             </label>
             <div
               onClick={() => fileInputRef.current?.click()}
@@ -171,14 +171,14 @@ export function AddProductDialog({ onClose }: AddProductDialogProps) {
               {imagePreview ? (
                 <img
                   src={imagePreview}
-                  alt="Förhandsvisning"
+                  alt="Preview"
                   className="max-h-40 rounded-md object-contain"
                 />
               ) : (
                 <>
                   <ImageIcon className="mb-2 h-8 w-8 text-muted-foreground/50" />
                   <p className="text-sm text-muted-foreground">
-                    Klicka för att ladda upp bild
+                    Click to upload image
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground/70">
                     PNG, JPG, WEBP
@@ -195,7 +195,7 @@ export function AddProductDialog({ onClose }: AddProductDialogProps) {
                 }}
                 className="mt-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Upload className="h-3 w-3" /> Byt bild
+                <Upload className="h-3 w-3" /> Change image
               </button>
             )}
             <input
@@ -210,22 +210,22 @@ export function AddProductDialog({ onClose }: AddProductDialogProps) {
           {/* Variants */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <label className="text-sm font-medium">Varianter</label>
+              <label className="text-sm font-medium">Variants</label>
               <button
                 type="button"
                 onClick={addVariant}
                 className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
               >
-                <Plus className="h-3.5 w-3.5" /> Lägg till variant
+                <Plus className="h-3.5 w-3.5" /> Add variant
               </button>
             </div>
 
             <div className="space-y-2">
               <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
-                <span className="col-span-4">Namn (t.ex. 50cm)</span>
+                <span className="col-span-4">Name (e.g. 50cm)</span>
                 <span className="col-span-2">SKU</span>
-                <span className="col-span-2">Pris (kr)</span>
-                <span className="col-span-2">Lager</span>
+                <span className="col-span-2">Price (kr)</span>
+                <span className="col-span-2">Stock</span>
                 <span className="col-span-2" />
               </div>
 
@@ -286,14 +286,14 @@ export function AddProductDialog({ onClose }: AddProductDialogProps) {
               onClick={onClose}
               className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
             >
-              Avbryt
+              Cancel
             </button>
             <button
               type="submit"
               disabled={saving || !title.trim()}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              {saving ? "Sparar..." : "Spara produkt"}
+              {saving ? "Saving..." : "Save product"}
             </button>
           </div>
         </form>

@@ -114,7 +114,7 @@ export function PrivateSaleDialog({ product, onClose }: PrivateSaleDialogProps) 
 
       setDone(true);
     } catch (err) {
-      setError("Något gick fel. Försök igen.");
+      setError("Something went wrong. Please try again.");
       console.error(err);
     } finally {
       setSaving(false);
@@ -142,11 +142,11 @@ export function PrivateSaleDialog({ product, onClose }: PrivateSaleDialogProps) 
               </svg>
             </div>
           </div>
-          <h3 className="text-lg font-semibold">Försäljning registrerad</h3>
+          <h3 className="text-lg font-semibold">Sale registered</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Lager och Shopify har uppdaterats.
+            Inventory and Shopify have been updated.
             {createInvoice && linkCustomer && selectedCustomerId
-              ? " Faktura skapad."
+              ? " Invoice created."
               : ""}
           </p>
           <button
@@ -154,7 +154,7 @@ export function PrivateSaleDialog({ product, onClose }: PrivateSaleDialogProps) 
             onClick={onClose}
             className="mt-4 w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
-            Stäng
+            Close
           </button>
         </div>
       </div>
@@ -167,7 +167,7 @@ export function PrivateSaleDialog({ product, onClose }: PrivateSaleDialogProps) 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
-            <h2 className="text-lg font-semibold">Registrera försäljning</h2>
+            <h2 className="text-lg font-semibold">Record sale</h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
               {product.title}
             </p>
@@ -193,7 +193,7 @@ export function PrivateSaleDialog({ product, onClose }: PrivateSaleDialogProps) 
               >
                 {product.variants.map((v) => (
                   <option key={v.id} value={v.id}>
-                    {v.title} — {v.stock} i lager
+                    {v.title} — {v.stock} in stock
                     {v.price ? ` — ${v.price} kr` : ""}
                   </option>
                 ))}
@@ -204,7 +204,7 @@ export function PrivateSaleDialog({ product, onClose }: PrivateSaleDialogProps) 
 
           {/* Quantity */}
           <div>
-            <label className="mb-1.5 block text-sm font-medium">Antal</label>
+            <label className="mb-1.5 block text-sm font-medium">Quantity</label>
             <input
               type="number"
               min="1"
@@ -215,7 +215,7 @@ export function PrivateSaleDialog({ product, onClose }: PrivateSaleDialogProps) 
             />
             {selectedVariant && qty > selectedVariant.stock && (
               <p className="mt-1 text-xs text-orange-500">
-                Antal överstiger lagersaldo ({selectedVariant.stock} st)
+                Quantity exceeds available stock ({selectedVariant.stock})
               </p>
             )}
           </div>
@@ -229,7 +229,7 @@ export function PrivateSaleDialog({ product, onClose }: PrivateSaleDialogProps) 
                 onChange={(e) => setLinkCustomer(e.target.checked)}
                 className="h-4 w-4 rounded border-border accent-primary"
               />
-              <span className="text-sm font-medium">Koppla till kund</span>
+              <span className="text-sm font-medium">Link to customer</span>
             </label>
 
             {linkCustomer && (
@@ -239,7 +239,7 @@ export function PrivateSaleDialog({ product, onClose }: PrivateSaleDialogProps) 
                   onChange={(e) => setSelectedCustomerId(e.target.value)}
                   className="w-full appearance-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 pr-8"
                 >
-                  <option value="">Välj kund...</option>
+                  <option value="">Select customer...</option>
                   {customers.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -264,11 +264,11 @@ export function PrivateSaleDialog({ product, onClose }: PrivateSaleDialogProps) 
               <span
                 className={`text-sm font-medium ${!linkCustomer || !selectedCustomerId ? "text-muted-foreground" : ""}`}
               >
-                Skapa faktura
+                Create invoice
               </span>
               {(!linkCustomer || !selectedCustomerId) && (
                 <span className="text-xs text-muted-foreground">
-                  (kräver kund)
+                  (requires customer)
                 </span>
               )}
             </label>
@@ -278,12 +278,12 @@ export function PrivateSaleDialog({ product, onClose }: PrivateSaleDialogProps) 
                 {unitPrice > 0 && (
                   <div className="rounded-md bg-muted/30 p-3 text-xs space-y-1">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Netto</span>
+                      <span className="text-muted-foreground">Net</span>
                       <span>{subtotal.toFixed(2)} kr</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">
-                        Moms ({vatRate}%)
+                        VAT ({vatRate}%)
                       </span>
                       <span>{vatAmount.toFixed(2)} kr</span>
                     </div>
@@ -297,7 +297,7 @@ export function PrivateSaleDialog({ product, onClose }: PrivateSaleDialogProps) 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                      Moms
+                      VAT
                     </label>
                     <select
                       value={vatRate}
@@ -314,7 +314,7 @@ export function PrivateSaleDialog({ product, onClose }: PrivateSaleDialogProps) 
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                      Förfallodatum
+                      Due date
                     </label>
                     <input
                       type="date"
@@ -337,14 +337,14 @@ export function PrivateSaleDialog({ product, onClose }: PrivateSaleDialogProps) 
               onClick={onClose}
               className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
             >
-              Avbryt
+              Cancel
             </button>
             <button
               type="submit"
               disabled={saving || !selectedVariantId || qty < 1}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              {saving ? "Registrerar..." : "Registrera försäljning"}
+              {saving ? "Registering..." : "Record sale"}
             </button>
           </div>
         </form>

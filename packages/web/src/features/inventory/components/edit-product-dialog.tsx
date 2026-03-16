@@ -123,7 +123,7 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
 
       onClose();
     } catch (err) {
-      setError("Något gick fel. Försök igen.");
+      setError("Something went wrong. Please try again.");
       console.error(err);
     } finally {
       setSaving(false);
@@ -135,7 +135,7 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
       <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-border bg-background shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="text-lg font-semibold">Redigera produkt</h2>
+          <h2 className="text-lg font-semibold">Edit product</h2>
           <button
             type="button"
             onClick={onClose}
@@ -150,7 +150,7 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
           {product.shopifyProductId && (
             <div className="flex items-center gap-2 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-xs text-green-700">
               <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-              Synkad med Shopify — lagerändringar skickas automatiskt
+              Synced with Shopify — stock changes are pushed automatically
             </div>
           )}
 
@@ -158,7 +158,7 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-sm font-medium">
-                Titel <span className="text-red-500">*</span>
+                Title <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -171,7 +171,7 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
 
             <div>
               <label className="mb-1.5 block text-sm font-medium">
-                Leverantör / Varumärke
+                Vendor / Brand
               </label>
               <input
                 type="text"
@@ -188,14 +188,14 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
                 onChange={(e) => setStatus(e.target.value as "active" | "archived")}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
               >
-                <option value="active">Aktiv</option>
-                <option value="archived">Arkiverad</option>
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
               </select>
             </div>
 
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-sm font-medium">
-                Beskrivning
+                Description
               </label>
               <textarea
                 value={description}
@@ -209,7 +209,7 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
           {/* Image */}
           <div>
             <label className="mb-1.5 block text-sm font-medium">
-              Produktbild
+              Product image
             </label>
             <div
               onClick={() => fileInputRef.current?.click()}
@@ -225,7 +225,7 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
                 <>
                   <ImageIcon className="mb-2 h-7 w-7 text-muted-foreground/50" />
                   <p className="text-sm text-muted-foreground">
-                    Klicka för att byta bild
+                    Click to change image
                   </p>
                 </>
               )}
@@ -236,7 +236,7 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
                 onClick={() => fileInputRef.current?.click()}
                 className="mt-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Upload className="h-3 w-3" /> Byt bild
+                <Upload className="h-3 w-3" /> Change image
               </button>
             )}
             <input
@@ -251,22 +251,22 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
           {/* Variants */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <label className="text-sm font-medium">Varianter</label>
+              <label className="text-sm font-medium">Variants</label>
               <button
                 type="button"
                 onClick={addVariant}
                 className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
               >
-                <Plus className="h-3.5 w-3.5" /> Lägg till variant
+                <Plus className="h-3.5 w-3.5" /> Add variant
               </button>
             </div>
 
             <div className="space-y-2">
               <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
-                <span className="col-span-4">Namn</span>
+                <span className="col-span-4">Name</span>
                 <span className="col-span-2">SKU</span>
-                <span className="col-span-2">Pris (kr)</span>
-                <span className="col-span-2">Lager</span>
+                <span className="col-span-2">Price (kr)</span>
+                <span className="col-span-2">Stock</span>
                 <span className="col-span-2" />
               </div>
 
@@ -323,14 +323,14 @@ export function EditProductDialog({ product, onClose }: EditProductDialogProps) 
               onClick={onClose}
               className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
             >
-              Avbryt
+              Cancel
             </button>
             <button
               type="submit"
               disabled={saving || !title.trim()}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              {saving ? "Sparar..." : "Spara ändringar"}
+              {saving ? "Saving..." : "Save changes"}
             </button>
           </div>
         </form>

@@ -91,7 +91,7 @@ export function Sidebar() {
       {/* Header */}
       <div className="flex h-14 items-center border-b border-sidebar-border px-3">
         {!collapsed && (
-          <h1 className="flex-1 text-lg font-semibold text-sidebar-foreground">CRM</h1>
+          <h1 className="flex-1 text-lg font-semibold text-sidebar-foreground">VersatileCRM</h1>
         )}
         <button
           onClick={toggle}
@@ -161,6 +161,11 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className={cn("border-t border-sidebar-border py-3", collapsed ? "px-1" : "px-3")}>
+        {!collapsed && (
+          <div className="mb-3 flex justify-center">
+            <img src="/logo.png" alt="VersatileCRM" className="h-32 w-full object-contain" />
+          </div>
+        )}
         <button
           onClick={() => signOut()}
           title={collapsed ? "Logga ut" : undefined}

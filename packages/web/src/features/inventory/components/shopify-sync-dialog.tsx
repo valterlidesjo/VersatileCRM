@@ -106,7 +106,7 @@ export function ShopifySyncDialog({ onClose, targetPartnerId }: ShopifySyncDialo
       setSyncResult(result.data);
     } catch (err) {
       setSyncError(
-        err instanceof Error ? err.message : "Synkronisering misslyckades"
+        err instanceof Error ? err.message : "Synchronization failed"
       );
     } finally {
       setSyncing(false);
@@ -139,7 +139,7 @@ export function ShopifySyncDialog({ onClose, targetPartnerId }: ShopifySyncDialo
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Synkronisera
+            Sync
           </button>
           <button
             type="button"
@@ -151,7 +151,7 @@ export function ShopifySyncDialog({ onClose, targetPartnerId }: ShopifySyncDialo
             }`}
           >
             <Settings className="h-3.5 w-3.5" />
-            Inställningar
+            Settings
           </button>
         </div>
 
@@ -159,20 +159,19 @@ export function ShopifySyncDialog({ onClose, targetPartnerId }: ShopifySyncDialo
           {tab === "sync" ? (
             <div className="space-y-4">
               {loadingConfig ? (
-                <p className="text-sm text-muted-foreground">Laddar...</p>
+                <p className="text-sm text-muted-foreground">Loading...</p>
               ) : !config ? (
                 <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-700">
-                  <p className="font-medium">Shopify inte konfigurerat</p>
+                  <p className="font-medium">Shopify not configured</p>
                   <p className="mt-1 text-orange-600">
-                    Gå till Inställningar-fliken och ange dina Shopify
-                    API-credentials.
+                    Go to the Settings tab and enter your Shopify API credentials.
                   </p>
                   <button
                     type="button"
                     onClick={() => setTab("settings")}
                     className="mt-2 text-orange-700 underline hover:no-underline"
                   >
-                    Öppna inställningar
+                    Open settings
                   </button>
                 </div>
               ) : (
@@ -181,27 +180,27 @@ export function ShopifySyncDialog({ onClose, targetPartnerId }: ShopifySyncDialo
                   <div className="flex items-center gap-2 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700">
                     <CheckCircle className="h-4 w-4 shrink-0" />
                     <span>
-                      Ansluten till{" "}
+                      Connected to{" "}
                       <span className="font-medium">{config.storeUrl}</span>
                     </span>
                   </div>
 
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">
-                      Importerar alla produkter och varianter från Shopify.
-                      Befintliga produkter uppdateras, deras lagersaldo
-                      bevaras. Bilder kopieras till Firebase Storage.
+                      Imports all products and variants from Shopify.
+                      Existing products are updated, their stock is preserved.
+                      Images are copied to Firebase Storage.
                     </p>
 
                     {syncResult && (
                       <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
-                        <p className="font-medium">Synkronisering klar!</p>
+                        <p className="font-medium">Sync complete!</p>
                         <ul className="mt-1 space-y-0.5 text-green-600">
                           <li>
-                            Totalt produkter: {syncResult.totalProducts}
+                            Total products: {syncResult.totalProducts}
                           </li>
-                          <li>Nya: {syncResult.created}</li>
-                          <li>Uppdaterade: {syncResult.synced}</li>
+                          <li>New: {syncResult.created}</li>
+                          <li>Updated: {syncResult.synced}</li>
                         </ul>
                       </div>
                     )}
@@ -220,7 +219,7 @@ export function ShopifySyncDialog({ onClose, targetPartnerId }: ShopifySyncDialo
                       onClick={onClose}
                       className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
                     >
-                      Stäng
+                      Close
                     </button>
                     <button
                       type="button"
@@ -231,7 +230,7 @@ export function ShopifySyncDialog({ onClose, targetPartnerId }: ShopifySyncDialo
                       <RefreshCw
                         className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`}
                       />
-                      {syncing ? "Synkar..." : "Starta synkronisering"}
+                      {syncing ? "Syncing..." : "Start sync"}
                     </button>
                   </div>
                 </>
@@ -241,18 +240,18 @@ export function ShopifySyncDialog({ onClose, targetPartnerId }: ShopifySyncDialo
             <form onSubmit={handleSaveConfig} className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium">
-                  Butikens URL
+                  Store URL
                 </label>
                 <input
                   type="text"
                   value={storeUrl}
                   onChange={(e) => setStoreUrl(e.target.value)}
-                  placeholder="din-butik.myshopify.com"
+                  placeholder="your-store.myshopify.com"
                   required
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Utan https:// — t.ex. hemdeal.myshopify.com
+                  Without https:// — e.g. hemdeal.myshopify.com
                 </p>
               </div>
 
@@ -264,12 +263,12 @@ export function ShopifySyncDialog({ onClose, targetPartnerId }: ShopifySyncDialo
                   type="password"
                   value={accessToken}
                   onChange={(e) => setAccessToken(e.target.value)}
-                  placeholder={config ? "Lämna tomt för att behålla befintlig" : "shpat_..."}
+                  placeholder={config ? "Leave empty to keep existing" : "shpat_..."}
                   required={!config}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Hämtas från Shopify Admin → Settings → Apps → Develop apps
+                  Get from Shopify Admin → Settings → Apps → Develop apps
                 </p>
               </div>
 
@@ -281,7 +280,7 @@ export function ShopifySyncDialog({ onClose, targetPartnerId }: ShopifySyncDialo
                   type="password"
                   value={webhookSecret}
                   onChange={(e) => setWebhookSecret(e.target.value)}
-                  placeholder={config ? "Lämna tomt för att behålla befintlig" : "Webhook secret..."}
+                  placeholder={config ? "Leave empty to keep existing" : "Webhook secret..."}
                   required={!config}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
                 />
@@ -293,7 +292,7 @@ export function ShopifySyncDialog({ onClose, targetPartnerId }: ShopifySyncDialo
                   onClick={onClose}
                   className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
                 >
-                  Avbryt
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -301,10 +300,10 @@ export function ShopifySyncDialog({ onClose, targetPartnerId }: ShopifySyncDialo
                   className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
                   {savingConfig
-                    ? "Sparar..."
+                    ? "Saving..."
                     : configSaved
-                      ? "Sparat!"
-                      : "Spara & anslut"}
+                      ? "Saved!"
+                      : "Save & connect"}
                 </button>
               </div>
             </form>

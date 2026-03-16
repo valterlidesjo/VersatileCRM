@@ -26,7 +26,7 @@ function InventoryPage() {
   const [saleProduct, setSaleProduct] = useState<Product | null>(null);
 
   return (
-    <PageContainer title="Lager" description="Källsanning för lagerstatus">
+    <PageContainer title="Inventory" description="Source of truth for inventory status">
       <div className="space-y-6">
         {/* Action bar */}
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -37,21 +37,23 @@ function InventoryPage() {
               className="flex items-center gap-1.5 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
             >
               <RefreshCw className="h-4 w-4" />
-              Synka Shopify
+              Sync Shopify
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setShowAdd(true)}
-            className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Ny produkt
-          </button>
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => setShowAdd(true)}
+              className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              New product
+            </button>
+          )}
         </div>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Laddar produkter...</p>
+          <p className="text-sm text-muted-foreground">Loading products...</p>
         ) : (
           <ProductList
             products={products}

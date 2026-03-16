@@ -20,11 +20,11 @@ import type { ParsedImportEntry } from "@/features/accounting/utils/csv-import";
 const PERIOD_STORAGE_KEY = "accounting-period";
 
 const PERIOD_OPTIONS: { value: Period; label: string }[] = [
-  { value: "this-month", label: "Denna månad" },
-  { value: "last-month", label: "Förra månaden" },
-  { value: "this-quarter", label: "Detta kvartal" },
-  { value: "last-quarter", label: "Förra kvartalet" },
-  { value: "all-time", label: "Sedan start" },
+  { value: "this-month", label: "This month" },
+  { value: "last-month", label: "Last month" },
+  { value: "this-quarter", label: "This quarter" },
+  { value: "last-quarter", label: "Last quarter" },
+  { value: "all-time", label: "Since start" },
 ];
 
 function savedPeriod(): Period {
@@ -86,7 +86,7 @@ function AccountingPage() {
       } catch (err) {
         errors.push(
           `Rad ${i + 1} (${entry.date} – ${entry.description}): ${
-            err instanceof Error ? err.message : "Okänt fel"
+            err instanceof Error ? err.message : "Unknown error"
           }`
         );
       }
@@ -120,7 +120,7 @@ function AccountingPage() {
             className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
           >
             <Upload className="h-4 w-4" />
-            Importera CSV
+            Import CSV
           </button>
           <button
             type="button"
@@ -128,13 +128,13 @@ function AccountingPage() {
             className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
           >
             <FileDown className="h-4 w-4" />
-            Exportera CSV
+            Export CSV
           </button>
         </div>
 
         {entries.length === 500 && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Visar max 500 poster — begränsa perioden för att se alla.
+            Showing max 500 entries — narrow the period to see all.
           </div>
         )}
 

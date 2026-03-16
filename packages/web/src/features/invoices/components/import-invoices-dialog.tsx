@@ -145,17 +145,17 @@ export function ImportInvoicesDialog({
               <div className="rounded-lg border border-border bg-muted/30 p-4 flex items-start gap-3">
                 <Download className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">CSV-mall</p>
+                  <p className="text-sm font-medium">CSV template</p>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Ladda ner mallen för att se rätt format. Flera rader med samma{" "}
-                    <code className="text-xs bg-muted px-1 rounded">invoiceNumber</code> slås ihop till en faktura med flera rader.
+                    Download the template to see the correct format. Multiple rows with the same{" "}
+                    <code className="text-xs bg-muted px-1 rounded">invoiceNumber</code> are merged into a single invoice with multiple lines.
                   </p>
                   <button
                     type="button"
                     onClick={downloadTemplate}
                     className="mt-2 text-sm font-medium text-primary hover:underline"
                   >
-                    Ladda ner invoice-import-template.csv
+                    Download invoice-import-template.csv
                   </button>
                 </div>
               </div>
@@ -165,26 +165,26 @@ export function ImportInvoicesDialog({
                 <table className="w-full">
                   <thead>
                     <tr className="bg-muted/30 border-b border-border">
-                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Kolumn</th>
-                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Obligatorisk</th>
-                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Format / exempel</th>
+                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Column</th>
+                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Required</th>
+                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Format / example</th>
                     </tr>
                   </thead>
                   <tbody>
                     {[
-                      ["invoiceDate", "Ja", "YYYY-MM-DD  ex. 2026-02-01"],
-                      ["dueDate", "Ja", "YYYY-MM-DD  ex. 2026-03-03"],
-                      ["customerName", "Ja", "Måste matcha exakt kundnamn i systemet"],
-                      ["description", "Ja", "Beskrivning av artikelrad"],
-                      ["quantity", "Nej", "Antal  (standard: 1)"],
-                      ["unitPrice", "Nej", "Á-pris exkl. moms  (standard: 0)"],
-                      ["vatRate", "Nej", "0 | 6 | 12 | 25  (standard: 25)"],
-                      ["invoiceNumber", "Nej", "Lämna tomt för auto. Samma nr = samma faktura"],
-                      ["currency", "Nej", "SEK | EUR | USD  (standard: SEK)"],
-                      ["overdueInterestRate", "Nej", "Dröjsmålsränta %  (standard: 8)"],
-                      ["notes", "Nej", "Fritext"],
-                      ["isInternational", "Nej", "true | false  (standard: false)"],
-                      ["language", "Nej", "sv | en  (standard: sv)"],
+                      ["invoiceDate", "Yes", "YYYY-MM-DD  e.g. 2026-02-01"],
+                      ["dueDate", "Yes", "YYYY-MM-DD  e.g. 2026-03-03"],
+                      ["customerName", "Yes", "Must match exact customer name in the system"],
+                      ["description", "Yes", "Description of line item"],
+                      ["quantity", "No", "Quantity (default: 1)"],
+                      ["unitPrice", "No", "Unit price excl. VAT (default: 0)"],
+                      ["vatRate", "No", "0 | 6 | 12 | 25  (default: 25)"],
+                      ["invoiceNumber", "No", "Leave empty for auto. Same number = same invoice"],
+                      ["currency", "No", "SEK | EUR | USD  (default: SEK)"],
+                      ["overdueInterestRate", "No", "Late payment interest % (default: 8)"],
+                      ["notes", "No", "Free text"],
+                      ["isInternational", "No", "true | false  (default: false)"],
+                      ["language", "No", "sv | en  (default: sv)"],
                     ].map(([col, req, fmt]) => (
                       <tr key={col} className="border-b border-border last:border-b-0">
                         <td className="px-3 py-2 font-mono">{col}</td>
@@ -209,8 +209,8 @@ export function ImportInvoicesDialog({
                 }`}
               >
                 <Upload className="h-8 w-8 text-muted-foreground" />
-                <p className="text-sm font-medium">Dra och släpp CSV-fil här</p>
-                <p className="text-xs text-muted-foreground">eller klicka för att välja fil</p>
+                <p className="text-sm font-medium">Drag and drop CSV file here</p>
+                <p className="text-xs text-muted-foreground">or click to select a file</p>
                 <input
                   ref={fileRef}
                   type="file"
@@ -224,7 +224,7 @@ export function ImportInvoicesDialog({
               {parseErrors.length > 0 && (
                 <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-1">
                   <p className="text-sm font-medium text-red-700 flex items-center gap-1.5">
-                    <AlertTriangle className="h-4 w-4" /> Fel i CSV-filen
+                    <AlertTriangle className="h-4 w-4" /> Errors in CSV file
                   </p>
                   <ul className="list-disc list-inside space-y-0.5">
                     {parseErrors.map((e, i) => (
@@ -242,14 +242,14 @@ export function ImportInvoicesDialog({
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
                   <span className="font-medium text-foreground">{parsedInvoices.length}</span>{" "}
-                  faktura{parsedInvoices.length !== 1 ? "or" : ""} hittades i filen
+                  invoice{parsedInvoices.length !== 1 ? "s" : ""} found in file
                 </p>
                 <button
                   type="button"
                   onClick={() => { setStep("upload"); setParsedInvoices([]); setParseErrors([]); setParseWarnings([]); if (fileRef.current) fileRef.current.value = ""; }}
                   className="text-sm text-muted-foreground hover:text-foreground underline"
                 >
-                  Byt fil
+                  Change file
                 </button>
               </div>
 
@@ -257,7 +257,7 @@ export function ImportInvoicesDialog({
               {parseWarnings.length > 0 && (
                 <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 space-y-1">
                   <p className="text-sm font-medium text-yellow-700 flex items-center gap-1.5">
-                    <AlertTriangle className="h-4 w-4" /> Varningar
+                    <AlertTriangle className="h-4 w-4" /> Warnings
                   </p>
                   <ul className="list-disc list-inside space-y-0.5">
                     {parseWarnings.map((w, i) => (
@@ -272,13 +272,13 @@ export function ImportInvoicesDialog({
                 <table className="w-full">
                   <thead>
                     <tr className="bg-muted/30 border-b border-border">
-                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Datum</th>
-                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Kund</th>
-                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Fakturanr</th>
-                      <th className="px-3 py-2 text-right font-medium text-muted-foreground">Rader</th>
-                      <th className="px-3 py-2 text-right font-medium text-muted-foreground">Exkl. moms</th>
-                      <th className="px-3 py-2 text-right font-medium text-muted-foreground">Moms</th>
-                      <th className="px-3 py-2 text-right font-medium text-muted-foreground">Totalt</th>
+                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Date</th>
+                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Customer</th>
+                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">Invoice #</th>
+                      <th className="px-3 py-2 text-right font-medium text-muted-foreground">Lines</th>
+                      <th className="px-3 py-2 text-right font-medium text-muted-foreground">Excl. VAT</th>
+                      <th className="px-3 py-2 text-right font-medium text-muted-foreground">VAT</th>
+                      <th className="px-3 py-2 text-right font-medium text-muted-foreground">Total</th>
                       <th className="px-3 py-2 text-left font-medium text-muted-foreground">Status</th>
                     </tr>
                   </thead>
@@ -311,7 +311,7 @@ export function ImportInvoicesDialog({
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-xs text-yellow-600">
-                              <AlertTriangle className="h-3.5 w-3.5" /> Kund saknas
+                              <AlertTriangle className="h-3.5 w-3.5" /> Customer missing
                             </span>
                           )}
                         </td>
@@ -340,7 +340,7 @@ export function ImportInvoicesDialog({
 
               {parsedInvoices.some((inv) => !inv.customerId) && (
                 <p className="text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2">
-                  Fakturor med okänd kund importeras utan kundkoppling och måste uppdateras manuellt.
+                  Invoices with unknown customers will be imported without a customer link and must be updated manually.
                 </p>
               )}
             </>
@@ -351,7 +351,7 @@ export function ImportInvoicesDialog({
             <div className="flex flex-col items-center gap-4 py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm font-medium">
-                Importerar faktura {importProgress} av {importTotal}…
+                Importing invoice {importProgress} of {importTotal}…
               </p>
               <div className="w-full max-w-xs rounded-full bg-muted h-2 overflow-hidden">
                 <div
@@ -367,11 +367,11 @@ export function ImportInvoicesDialog({
             <div className="flex flex-col items-center gap-4 py-8">
               <CheckCircle2 className="h-10 w-10 text-green-600" />
               <p className="text-base font-semibold">
-                {importTotal - importErrors.length} av {importTotal} fakturor importerade!
+                {importTotal - importErrors.length} of {importTotal} invoices imported!
               </p>
               {importErrors.length > 0 && (
                 <div className="w-full rounded-lg border border-red-200 bg-red-50 p-4 space-y-1">
-                  <p className="text-sm font-medium text-red-700">Fel vid import:</p>
+                  <p className="text-sm font-medium text-red-700">Errors during import:</p>
                   <ul className="list-disc list-inside space-y-0.5">
                     {importErrors.map((e, i) => (
                       <li key={i} className="text-sm text-red-600">{e}</li>
@@ -391,7 +391,7 @@ export function ImportInvoicesDialog({
               onClick={onClose}
               className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
             >
-              Avbryt
+              Cancel
             </button>
           )}
           {step === "preview" && (
@@ -401,14 +401,14 @@ export function ImportInvoicesDialog({
                 onClick={onClose}
                 className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
               >
-                Avbryt
+                Cancel
               </button>
               <button
                 type="button"
                 onClick={handleImport}
                 className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
               >
-                Importera {parsedInvoices.length} faktura{parsedInvoices.length !== 1 ? "or" : ""}
+                Import {parsedInvoices.length} invoice{parsedInvoices.length !== 1 ? "s" : ""}
               </button>
             </>
           )}
@@ -418,7 +418,7 @@ export function ImportInvoicesDialog({
               onClick={onClose}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              Stäng
+              Close
             </button>
           )}
         </div>

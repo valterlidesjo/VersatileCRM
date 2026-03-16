@@ -314,7 +314,7 @@ function ProfilePage() {
   return (
     <PageContainer
       title="Company Profile"
-      description="Företagsinformation för fakturor och offerter"
+      description="Company details for invoices and quotes"
     >
       <div className="max-w-xl">
         <Section title="Företagsinformation">

@@ -47,9 +47,9 @@ export function CancelInvoiceDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Annullera faktura {invoiceNumber}</DialogTitle>
+          <DialogTitle>Cancel invoice {invoiceNumber}</DialogTitle>
           <DialogDescription>
-            Ange anledningen till att fakturan annulleras. Detta kan inte ångras.
+            Provide a reason for cancelling this invoice. This cannot be undone.
           </DialogDescription>
         </DialogHeader>
 
@@ -59,13 +59,13 @@ export function CancelInvoiceDialog({
               htmlFor="cancel-reason"
               className="text-sm font-medium text-foreground"
             >
-              Anledning <span className="text-red-500">*</span>
+              Reason <span className="text-red-500">*</span>
             </label>
             <textarea
               id="cancel-reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Beskriv varför fakturan annulleras..."
+              placeholder="Describe why the invoice is being cancelled..."
               rows={4}
               disabled={submitting}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 resize-none"
@@ -79,14 +79,14 @@ export function CancelInvoiceDialog({
               disabled={submitting}
               className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
             >
-              Avbryt
+              Cancel
             </button>
             <button
               type="submit"
               disabled={!reason.trim() || submitting}
               className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50"
             >
-              {submitting ? "Annullerar..." : "Annullera faktura"}
+              {submitting ? "Cancelling..." : "Cancel invoice"}
             </button>
           </div>
         </form>

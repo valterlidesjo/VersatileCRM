@@ -25,7 +25,7 @@ function SuperAdminShopifyPage() {
         const snap = await getDoc(doc(db, `partners/${p.id}/integrations/shopify`));
         return [p.id, snap.exists()] as const;
       })
-    ).then((entries) => setShopifyStatus(Object.fromEntries(entries)));
+    ).then((entries) => setShopifyStatus(Object.fromEntries(entries))).catch(console.error);
   }, [partners]);
 
   return (

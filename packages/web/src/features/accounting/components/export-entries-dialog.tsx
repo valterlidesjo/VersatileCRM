@@ -99,7 +99,7 @@ export function ExportEntriesDialog({
           <div className="flex items-center gap-2">
             <FileDown className="h-5 w-5 text-muted-foreground" />
             <h2 className="text-lg font-semibold">
-              Exportera verifikationer till CSV
+              Export journal entries to CSV
             </h2>
           </div>
           <button
@@ -116,18 +116,18 @@ export function ExportEntriesDialog({
           <div>
             <div className="flex items-center gap-2 mb-3">
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Tidsperiod</span>
+              <span className="text-sm font-medium">Time period</span>
             </div>
 
             {/* Presets */}
             <div className="flex flex-wrap gap-2 mb-3">
               {(
                 [
-                  ["all", "Alla"],
-                  ["thisMonth", "Denna månad"],
-                  ["lastMonth", "Förra månad"],
-                  ["thisYear", "I år"],
-                  ["lastYear", "Förra år"],
+                  ["all", "All"],
+                  ["thisMonth", "This month"],
+                  ["lastMonth", "Last month"],
+                  ["thisYear", "This year"],
+                  ["lastYear", "Last year"],
                 ] as const
               ).map(([preset, label]) => (
                 <button
@@ -144,7 +144,7 @@ export function ExportEntriesDialog({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Från
+                  From
                 </label>
                 <input
                   type="date"
@@ -155,7 +155,7 @@ export function ExportEntriesDialog({
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Till
+                  To
                 </label>
                 <input
                   type="date"
@@ -168,7 +168,7 @@ export function ExportEntriesDialog({
 
             {!dateFrom && !dateTo && (
               <p className="mt-1.5 text-xs text-muted-foreground">
-                Inga datum angivna — exporterar alla verifikationer.
+                No dates specified — exporting all journal entries.
               </p>
             )}
           </div>
@@ -177,24 +177,24 @@ export function ExportEntriesDialog({
           {matchCount > 0 ? (
             <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
               <p className="text-sm font-medium">
-                {matchCount} verifikation{matchCount !== 1 ? "er" : ""} matchar
+                {matchCount} journal entr{matchCount !== 1 ? "ies" : "y"} match
               </p>
 
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div>
-                  <p className="text-xs text-muted-foreground">Kostnader</p>
+                  <p className="text-xs text-muted-foreground">Costs</p>
                   <p className="text-sm font-semibold tabular-nums text-red-600">
                     {formatAmount(totalCosts)} kr
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Intäkter</p>
+                  <p className="text-xs text-muted-foreground">Income</p>
                   <p className="text-sm font-semibold tabular-nums text-green-600">
                     {formatAmount(totalIncome)} kr
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Netto moms</p>
+                  <p className="text-xs text-muted-foreground">Net VAT</p>
                   <p className="text-sm font-semibold tabular-nums">
                     {formatAmount(totalVat)} kr
                   </p>
@@ -204,7 +204,7 @@ export function ExportEntriesDialog({
           ) : (
             <div className="rounded-lg border border-border bg-muted/20 p-4">
               <p className="text-sm text-muted-foreground text-center">
-                Inga verifikationer matchar den valda perioden.
+                No journal entries match the selected period.
               </p>
             </div>
           )}
@@ -213,11 +213,11 @@ export function ExportEntriesDialog({
           {exported && (
             <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3">
               <p className="text-sm text-green-700 font-medium">
-                {exportedCount} verifikation{exportedCount !== 1 ? "er" : ""}{" "}
-                exporterades!
+                {exportedCount} journal entr{exportedCount !== 1 ? "ies" : "y"}{" "}
+                exported!
               </p>
               <p className="text-xs text-green-600 mt-0.5">
-                Filen öppnas automatiskt i din nedladdningsmapp.
+                The file will open automatically in your downloads folder.
               </p>
             </div>
           )}
@@ -225,7 +225,7 @@ export function ExportEntriesDialog({
           {/* CSV column info */}
           <details className="group">
             <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground select-none">
-              Visa exporterade kolumner
+              Show exported columns
             </summary>
             <div className="mt-2 text-xs text-muted-foreground font-mono bg-muted/30 rounded-md px-3 py-2 leading-relaxed">
               date, description, transactionType, category, categoryName,
@@ -241,7 +241,7 @@ export function ExportEntriesDialog({
             onClick={onClose}
             className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
           >
-            Stäng
+            Close
           </button>
           <button
             type="button"
@@ -250,7 +250,7 @@ export function ExportEntriesDialog({
             className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             <Download className="h-4 w-4" />
-            Exportera {matchCount > 0 ? `${matchCount} st` : ""}
+            Export {matchCount > 0 ? `${matchCount}` : ""}
           </button>
         </div>
       </div>

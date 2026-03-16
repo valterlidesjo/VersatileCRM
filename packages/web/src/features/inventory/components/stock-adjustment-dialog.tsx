@@ -63,7 +63,7 @@ export function StockAdjustmentDialog({
 
       onClose();
     } catch (err) {
-      setError("Något gick fel. Försök igen.");
+      setError("Something went wrong. Please try again.");
       console.error(err);
     } finally {
       setSaving(false);
@@ -76,7 +76,7 @@ export function StockAdjustmentDialog({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
-            <h2 className="text-lg font-semibold">Justera lager</h2>
+            <h2 className="text-lg font-semibold">Adjust stock</h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
               {product.title}
             </p>
@@ -93,7 +93,7 @@ export function StockAdjustmentDialog({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {product.variants.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Inga varianter att justera.
+              No variants to adjust.
             </p>
           ) : (
             <div className="space-y-3">
@@ -112,7 +112,7 @@ export function StockAdjustmentDialog({
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">
-                      Nuv: {variant.stock}
+                      Cur: {variant.stock}
                     </span>
                     <input
                       type="number"
@@ -134,8 +134,7 @@ export function StockAdjustmentDialog({
 
           {product.shopifyProductId && (
             <p className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
-              Produkten är kopplad till Shopify. Lagerändringen skickas
-              automatiskt till Shopify.
+              This product is linked to Shopify. Stock changes will be pushed to Shopify automatically.
             </p>
           )}
 
@@ -147,14 +146,14 @@ export function StockAdjustmentDialog({
               onClick={onClose}
               className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
             >
-              Avbryt
+              Cancel
             </button>
             <button
               type="submit"
               disabled={saving || product.variants.length === 0}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              {saving ? "Sparar..." : "Uppdatera lager"}
+              {saving ? "Saving..." : "Update stock"}
             </button>
           </div>
         </form>
