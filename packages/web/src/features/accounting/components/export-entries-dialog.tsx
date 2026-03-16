@@ -3,6 +3,7 @@ import { X, Download, FileDown, CalendarDays } from "lucide-react";
 import type { JournalEntry } from "@crm/shared";
 import {
   exportEntriesToCsv,
+  exportToVerifikationCsv,
   countFilteredEntries,
 } from "../utils/csv-export";
 import { formatAmount } from "../utils/format";
@@ -21,6 +22,9 @@ export function ExportEntriesDialog({
 }: ExportEntriesDialogProps) {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [exportFormat, setExportFormat] = useState<
+    "internal" | "verifikation"
+  >("internal");
   const [exported, setExported] = useState(false);
   const [exportedCount, setExportedCount] = useState(0);
 
@@ -59,10 +63,14 @@ export function ExportEntriesDialog({
   }
 
   function handleExport() {
-    const result = exportEntriesToCsv(entries, {
+    const opts = {
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
-    });
+    };
+    const result =
+      exportFormat === "verifikation"
+        ? exportToVerifikationCsv(entries, opts)
+        : exportEntriesToCsv(entries, opts);
     setExportedCount(result.count);
     setExported(true);
   }
@@ -112,6 +120,39 @@ export function ExportEntriesDialog({
         </div>
 
         <div className="p-6 space-y-5">
+          {/* Export format */}
+          <div>
+            <span className="text-sm font-medium block mb-2">
+              Export format
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  ["internal", "CRM-format", "date, category, totalAmount…"],
+                  [
+                    "verifikation",
+                    "Verifikationsjournal",
+                    "Datum, Konto, Debet, Kredit…",
+                  ],
+                ] as const
+              ).map(([value, label, hint]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setExportFormat(value)}
+                  className={`rounded-md border px-3 py-2 text-left transition-colors ${
+                    exportFormat === value
+                      ? "border-primary bg-primary/5 text-foreground"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted/30"
+                  }`}
+                >
+                  <p className="text-sm font-medium">{label}</p>
+                  <p className="text-xs mt-0.5 font-mono opacity-70">{hint}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Date range */}
           <div>
             <div className="flex items-center gap-2 mb-3">
@@ -228,8 +269,9 @@ export function ExportEntriesDialog({
               Show exported columns
             </summary>
             <div className="mt-2 text-xs text-muted-foreground font-mono bg-muted/30 rounded-md px-3 py-2 leading-relaxed">
-              date, description, transactionType, category, categoryName,
-              totalAmount, vatRate, vatAmount, createdAt
+              {exportFormat === "verifikation"
+                ? "Datum, Verifikationsnummer, Eventuell hänvisning, Konto, Officelt kontonamn, Debet, Kredit"
+                : "date, description, transactionType, category, categoryName, totalAmount, vatRate, vatAmount, createdAt"}
             </div>
           </details>
         </div>

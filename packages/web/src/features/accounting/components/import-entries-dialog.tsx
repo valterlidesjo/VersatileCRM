@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import {
   parseEntriesCsv,
+  parseVerifikationCsv,
+  detectCsvFormat,
   CSV_TEMPLATE,
   CATEGORY_REFERENCE,
   type ParsedImportEntry,
@@ -37,6 +39,9 @@ export function ImportEntriesDialog({
   const [importTotal, setImportTotal] = useState(0);
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [showCategories, setShowCategories] = useState(false);
+  const [detectedFormat, setDetectedFormat] = useState<
+    "verifikation" | "internal" | null
+  >(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function downloadTemplate() {
@@ -61,7 +66,21 @@ export function ImportEntriesDialog({
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
-      const result = parseEntriesCsv(text);
+      const format = detectCsvFormat(text);
+
+      if (format === "unknown") {
+        setParseErrors([
+          "Okänt CSV-format. Ladda upp en CRM-exportfil eller en verifikationsjournal (Visma/Fortnox).",
+        ]);
+        return;
+      }
+
+      setDetectedFormat(format);
+      const result =
+        format === "verifikation"
+          ? parseVerifikationCsv(text)
+          : parseEntriesCsv(text);
+
       setParseErrors(result.errors);
       setParseWarnings(result.warnings);
       setParsedEntries(result.entries);
@@ -144,17 +163,33 @@ export function ImportEntriesDialog({
               <div className="rounded-lg border border-border bg-muted/30 p-4 flex items-start gap-3">
                 <Download className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">CSV template</p>
+                  <p className="text-sm font-medium">Supported formats</p>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Download the template to see the correct format. Each row in
-                    the CSV becomes a separate journal entry.
+                    Two formats are accepted and detected automatically:
                   </p>
+                  <ul className="mt-1.5 space-y-0.5 text-sm text-muted-foreground list-disc list-inside">
+                    <li>
+                      <span className="text-foreground font-medium">
+                        CRM-format
+                      </span>{" "}
+                      — one row per journal entry with category, transactionType,
+                      totalAmount, vatRate
+                    </li>
+                    <li>
+                      <span className="text-foreground font-medium">
+                        Verifikationsjournal
+                      </span>{" "}
+                      — export from Visma, Fortnox, or similar Swedish
+                      bookkeeping software (Datum, Verifikationsnummer, Konto,
+                      Debet, Kredit)
+                    </li>
+                  </ul>
                   <button
                     type="button"
                     onClick={downloadTemplate}
                     className="mt-2 text-sm font-medium text-primary hover:underline"
                   >
-                    Download journal-entry-import-template.csv
+                    Download CRM-format template
                   </button>
                 </div>
               </div>
@@ -333,12 +368,22 @@ export function ImportEntriesDialog({
           {step === "preview" && (
             <>
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    {parsedEntries.length}
-                  </span>{" "}
-                  journal entr{parsedEntries.length !== 1 ? "ies" : "y"} found in file
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {parsedEntries.length}
+                    </span>{" "}
+                    journal entr{parsedEntries.length !== 1 ? "ies" : "y"} found
+                    in file
+                  </p>
+                  {detectedFormat && (
+                    <span className="rounded-full border border-border bg-muted/40 px-2 py-0.5 text-xs text-muted-foreground">
+                      {detectedFormat === "verifikation"
+                        ? "Verifikationsjournal"
+                        : "CRM-format"}
+                    </span>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={() => {
@@ -346,6 +391,7 @@ export function ImportEntriesDialog({
                     setParsedEntries([]);
                     setParseErrors([]);
                     setParseWarnings([]);
+                    setDetectedFormat(null);
                     if (fileRef.current) fileRef.current.value = "";
                   }}
                   className="text-sm text-muted-foreground hover:text-foreground underline"

@@ -158,6 +158,386 @@ export function parseEntriesCsv(csvText: string): ImportEntriesResult {
   return { entries, errors, warnings };
 }
 
+// ---------------------------------------------------------------------------
+// Verifikationsjournal format support
+// ---------------------------------------------------------------------------
+
+// VAT accounts (2610–2649): utgående moms + ingående moms
+const VAT_ACCOUNT_RE = /^26[0-4]/;
+// Bank/payment accounts (petty cash + bank accounts)
+const BANK_ACCOUNTS = new Set(["1920", "1930", "1940"]);
+
+const isVatAccount = (n: string) => VAT_ACCOUNT_RE.test(n);
+const isBankAccount = (n: string) => BANK_ACCOUNTS.has(n);
+const isAuxiliaryAccount = (n: string) => isVatAccount(n) || isBankAccount(n);
+
+// Balance-sheet fallback category IDs — imports to these trigger a warning
+const BALANCE_SHEET_CATEGORY_IDS = new Set([
+  "supplier_advance",
+  "deposit",
+  "owner_equity",
+]);
+
+/**
+ * Detects whether a CSV text is in the verifikation (Swedish bookkeeping export)
+ * format or the CRM internal format, based on the header row.
+ */
+export function detectCsvFormat(
+  csvText: string
+): "verifikation" | "internal" | "unknown" {
+  const firstLine = csvText
+    .replace(/^\uFEFF/, "")
+    .split("\n")[0]
+    ?.toLowerCase()
+    .trim();
+
+  if (!firstLine) return "unknown";
+  if (firstLine.includes("verifikationsnummer")) return "verifikation";
+  if (firstLine.includes("transactiontype")) return "internal";
+  return "unknown";
+}
+
+/**
+ * Parses a Swedish bookkeeping amount string to a number.
+ *
+ * Handles the format used in verifikationsjournaler:
+ *   "25,000.00 kr" → 25000
+ *   "3,367.20 kr"  → 3367.20
+ *   "100.00 kr"    → 100
+ *   ""             → 0
+ *
+ * Comma is the thousands separator, period is the decimal separator.
+ * The " kr" currency suffix is stripped.
+ */
+export function parseVerifikationAmount(s: string): number {
+  const cleaned = s
+    .trim()
+    .replace(/\s*kr\s*$/i, "") // strip " kr" suffix
+    .trim()
+    .replace(/,/g, ""); // remove thousands-separator commas
+  const value = parseFloat(cleaned);
+  return isNaN(value) ? 0 : value;
+}
+
+/** Find a category by ID, falling back to other_cost if not found. */
+function findCat(id: string): (typeof ACCOUNT_CATEGORIES)[number] {
+  return (
+    ACCOUNT_CATEGORIES.find((c) => c.id === id) ??
+    ACCOUNT_CATEGORIES.find((c) => c.id === "other_cost")!
+  );
+}
+
+/**
+ * Infers the most appropriate category and transactionType for a verifikation
+ * by inspecting its constituent accounting lines.
+ *
+ * Priority:
+ *  1. Exact account number match against a category's defaultAccountNumber
+ *  2. Two-digit account prefix match (e.g. 50xx → rent via 5010)
+ *  3. Account class (first digit) fallback
+ */
+function inferCategoryAndType(lines: { accountNumber: string; debit: number; credit: number }[]): {
+  category: (typeof ACCOUNT_CATEGORIES)[number];
+  transactionType: "cost" | "income";
+} {
+  const bankDebit = lines
+    .filter((l) => isBankAccount(l.accountNumber))
+    .reduce((s, l) => s + l.debit, 0);
+  const bankCredit = lines
+    .filter((l) => isBankAccount(l.accountNumber))
+    .reduce((s, l) => s + l.credit, 0);
+
+  // Find the primary account: non-bank, non-VAT, largest absolute amount
+  const mainLine = lines
+    .filter((l) => !isAuxiliaryAccount(l.accountNumber))
+    .reduce<{ accountNumber: string; debit: number; credit: number } | null>(
+      (best, l) => {
+        const amt = Math.max(l.debit, l.credit);
+        const bestAmt = best ? Math.max(best.debit, best.credit) : 0;
+        return amt > bestAmt ? l : best;
+      },
+      null
+    );
+
+  if (!mainLine) {
+    const isIncoming = bankDebit > bankCredit;
+    return {
+      category: findCat(isIncoming ? "other_income" : "other_cost"),
+      transactionType: isIncoming ? "income" : "cost",
+    };
+  }
+
+  // 1. Exact match
+  const exact = ACCOUNT_CATEGORIES.find(
+    (c) => c.defaultAccountNumber === mainLine.accountNumber
+  );
+  if (exact) return { category: exact, transactionType: exact.transactionType };
+
+  // 2. Two-digit prefix match (e.g. account 5060 → prefix "50" → rent with 5010)
+  const prefix2 = mainLine.accountNumber.slice(0, 2);
+  const prefix2Match = ACCOUNT_CATEGORIES.find((c) =>
+    c.defaultAccountNumber.startsWith(prefix2)
+  );
+  if (prefix2Match)
+    return {
+      category: prefix2Match,
+      transactionType: prefix2Match.transactionType,
+    };
+
+  // 3. Account class fallback
+  const firstDigit = mainLine.accountNumber[0];
+  switch (firstDigit) {
+    case "3":
+      return { category: findCat("service_sales_25"), transactionType: "income" };
+    case "4":
+      return { category: findCat("goods_purchase"), transactionType: "cost" };
+    case "5":
+      return { category: findCat("rent"), transactionType: "cost" };
+    case "6":
+    case "7":
+      return { category: findCat("other_cost"), transactionType: "cost" };
+    case "8":
+      return { category: findCat("other_income"), transactionType: "income" };
+    case "1": {
+      // Balance sheet asset — direction from bank
+      const isOutflow = bankCredit > 0;
+      return {
+        category: findCat(isOutflow ? "supplier_advance" : "other_income"),
+        transactionType: isOutflow ? "cost" : "income",
+      };
+    }
+    case "2": {
+      // Equity/liability — direction from bank
+      const isInflow = bankDebit > 0;
+      return {
+        category: findCat(isInflow ? "owner_equity" : "other_cost"),
+        transactionType: isInflow ? "income" : "cost",
+      };
+    }
+    default:
+      return { category: findCat("other_cost"), transactionType: "cost" };
+  }
+}
+
+/**
+ * Parses a CSV in the verifikationsjournal format exported by Swedish bookkeeping
+ * software (Visma, Fortnox, etc.) into CRM journal entries.
+ *
+ * Format structure:
+ *   Datum,Verifikationsnummer,Eventuell hänvisning,Konto,Officelt kontonamn,Debet,Kredit
+ *
+ * Each verifikation spans one or more rows. Only the first row has Datum populated;
+ * continuation rows carry the same date and reference implicitly.
+ */
+export function parseVerifikationCsv(csvText: string): ImportEntriesResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const entries: ParsedImportEntry[] = [];
+
+  const lines = csvText
+    .replace(/^\uFEFF/, "")
+    .split("\n")
+    .map((l) => l.trimEnd())
+    .filter((l) => l.length > 0);
+
+  if (lines.length < 2) {
+    errors.push("CSV-filen är tom eller saknar datarader.");
+    return { entries, errors, warnings };
+  }
+
+  const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase().trim());
+  const col = (name: string) => headers.indexOf(name);
+
+  const datumIdx = col("datum");
+  const verifIdx = col("verifikationsnummer");
+  // Handle slight spelling variations of the reference column
+  const refIdx =
+    col("eventuell hänvisning") !== -1
+      ? col("eventuell hänvisning")
+      : headers.findIndex((h) => h.includes("eventuell"));
+  const kontoIdx = col("konto");
+  const kontoNameIdx = headers.findIndex((h) => h.includes("kontonamn"));
+  const debetIdx = col("debet");
+  const kreditIdx = col("kredit");
+
+  const missing: string[] = [];
+  if (datumIdx === -1) missing.push("Datum");
+  if (verifIdx === -1) missing.push("Verifikationsnummer");
+  if (kontoIdx === -1) missing.push("Konto");
+  if (debetIdx === -1) missing.push("Debet");
+  if (kreditIdx === -1) missing.push("Kredit");
+
+  if (missing.length > 0) {
+    errors.push(`Obligatoriska kolumner saknas: ${missing.join(", ")}`);
+    return { entries, errors, warnings };
+  }
+
+  interface RawVerifLine {
+    accountNumber: string;
+    accountName: string;
+    debit: number;
+    credit: number;
+  }
+
+  interface VerifGroup {
+    verifId: string;
+    datum: string;
+    ref: string;
+    rawLines: RawVerifLine[];
+    firstRowNum: number;
+  }
+
+  const groups = new Map<string, VerifGroup>();
+  // Carry date/ref across continuation rows (blank Datum = same verif)
+  let currentDatum = "";
+  let currentRef = "";
+
+  for (let i = 1; i < lines.length; i++) {
+    const row = parseCsvLine(lines[i]);
+    const rowNum = i + 1;
+
+    const rawDatum = (row[datumIdx] ?? "").trim();
+    const rawVerif = (row[verifIdx] ?? "").trim();
+    const rawRef = refIdx !== -1 ? (row[refIdx] ?? "").trim() : "";
+    const accountNumber = (row[kontoIdx] ?? "").trim();
+    const accountName =
+      kontoNameIdx !== -1 ? (row[kontoNameIdx] ?? "").trim() : accountNumber;
+    const debetStr = row[debetIdx] ?? "";
+    const kreditStr = row[kreditIdx] ?? "";
+
+    if (!rawVerif) {
+      warnings.push(`Rad ${rowNum}: Verifikationsnummer saknas, hoppas över.`);
+      continue;
+    }
+
+    if (!accountNumber) {
+      warnings.push(`Rad ${rowNum}: Kontonummer saknas, hoppas över.`);
+      continue;
+    }
+
+    // Validate and propagate date
+    if (rawDatum) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(rawDatum)) {
+        errors.push(
+          `Rad ${rowNum}: Ogiltigt datum "${rawDatum}". Förväntar YYYY-MM-DD.`
+        );
+        continue;
+      }
+      currentDatum = rawDatum;
+    }
+    if (rawRef) currentRef = rawRef;
+
+    // First row of a new verif must have a date
+    if (!groups.has(rawVerif) && !rawDatum && !currentDatum) {
+      errors.push(
+        `Rad ${rowNum}: Verifikation ${rawVerif} saknar datum på första raden.`
+      );
+      continue;
+    }
+
+    const debit = parseVerifikationAmount(debetStr);
+    const credit = parseVerifikationAmount(kreditStr);
+
+    if (!groups.has(rawVerif)) {
+      groups.set(rawVerif, {
+        verifId: rawVerif,
+        datum: currentDatum,
+        ref: rawRef || currentRef,
+        rawLines: [],
+        firstRowNum: rowNum,
+      });
+    }
+
+    groups.get(rawVerif)!.rawLines.push({
+      accountNumber,
+      accountName,
+      debit,
+      credit,
+    });
+  }
+
+  // Convert each group into a JournalEntry
+  for (const [verifId, group] of groups) {
+    if (group.rawLines.length === 0) continue;
+
+    if (!group.datum) {
+      errors.push(`Verifikation ${verifId}: Datum saknas.`);
+      continue;
+    }
+
+    const entryLines = group.rawLines.map((l) => ({
+      accountNumber: l.accountNumber,
+      accountName: l.accountName,
+      debit: l.debit,
+      credit: l.credit,
+    }));
+
+    // totalAmount: amount flowing through bank account (1930/1920/1940)
+    // If no bank account present, use sum of non-VAT debits or credits
+    const bankLines = entryLines.filter((l) => isBankAccount(l.accountNumber));
+    const bankDebit = bankLines.reduce((s, l) => s + l.debit, 0);
+    const bankCredit = bankLines.reduce((s, l) => s + l.credit, 0);
+
+    let totalAmount: number;
+    if (bankCredit > 0) {
+      totalAmount = bankCredit; // money going out (cost)
+    } else if (bankDebit > 0) {
+      totalAmount = bankDebit; // money coming in (income)
+    } else {
+      // No bank account (e.g. owner-paid expense recorded as owner loan)
+      const nonVatLines = entryLines.filter(
+        (l) => !isVatAccount(l.accountNumber)
+      );
+      const nonVatDebit = nonVatLines.reduce((s, l) => s + l.debit, 0);
+      const nonVatCredit = nonVatLines.reduce((s, l) => s + l.credit, 0);
+      totalAmount = Math.max(nonVatDebit, nonVatCredit);
+    }
+
+    // vatAmount: net debit on VAT accounts
+    // For reverse-charge entries, the debit and credit VAT lines cancel out → 0
+    const netVat = entryLines
+      .filter((l) => isVatAccount(l.accountNumber))
+      .reduce((s, l) => s + l.debit - l.credit, 0);
+    const vatAmount = Math.max(0, netVat);
+
+    // Infer vatRate from ratio
+    let vatRate: VatRate = "0";
+    const baseAmount = totalAmount - vatAmount;
+    if (baseAmount > 0 && vatAmount > 0) {
+      const rate = Math.round((vatAmount / baseAmount) * 100);
+      if (rate >= 23 && rate <= 27) vatRate = "25";
+      else if (rate >= 10 && rate <= 14) vatRate = "12";
+      else if (rate >= 4 && rate <= 8) vatRate = "6";
+    }
+
+    const { category, transactionType } = inferCategoryAndType(entryLines);
+
+    if (BALANCE_SHEET_CATEGORY_IDS.has(category.id)) {
+      warnings.push(
+        `Verifikation ${verifId} (${group.ref || group.datum}): ` +
+          `Klassificerad som "${category.name}" (balansräkningskonto). ` +
+          `Ingår i kassaflödet men inte i resultatet.`
+      );
+    }
+
+    const now = new Date().toISOString();
+    entries.push({
+      date: group.datum,
+      description: group.ref || `Verifikation ${verifId}`,
+      transactionType,
+      category: category.id,
+      totalAmount,
+      vatRate,
+      vatAmount,
+      lines: entryLines,
+    });
+
+    void now; // createdAt/updatedAt added by Firestore write
+  }
+
+  return { entries, errors, warnings };
+}
+
 // CSV template that users can download
 export const CSV_TEMPLATE = `date,description,transactionType,category,totalAmount,vatRate
 2024-01-15,Kontorsmaterial från Staples,cost,office_supplies,1250.00,25

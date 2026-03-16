@@ -142,3 +142,25 @@ Transaktionen har ingen retry-logik. Misslyckad transaktion leder till luckor i 
 **Fix:** Ändra till `Schema.pattern(/^\d{4}-\d{2}-\d{2}$/)` på `JournalEntry.date`. Säkerställ att webhook-handleren alltid sparar `new Date(order.created_at).toISOString().split("T")[0]`.
 **Var att börja:** `packages/shared/src/schemas/accounting.ts` + `packages/functions/src/shopify/webhook-handler.ts`
 **Effort:** XS | **Depends on:** TODO-4
+
+---
+
+## Verifikationsjournal import — deferred items (2026-03-16)
+
+### TODO-V1: Källmärkning av importerade verifikationer
+**Vad:** Lägg till ett valfritt `importSource: "verifikation" | "crm"` på `JournalEntry`-schemat.
+**Varför:** I dagsläget finns inget sätt att urskilja vilka poster som kom från en CSV-import kontra skapades manuellt i CRM:et. Utan märkning kan exportdialogen inte föreslå rätt format automatiskt.
+**Pros:** Gör det möjligt att: (1) autovalja exportformat baserat på hur posten skapades, (2) filtrera bort importerade poster från CRM-statistik om kunden vill.
+**Cons:** Schema-ändring kräver att `Schema.optional(Schema.String)` läggs till — ingen Firestore-migration behövs (nullable-fält är bakåtkompatibla). UI-komponenter måste kontrolleras mot `undefined`.
+**Var att börja:** `packages/shared/src/schemas/accounting.ts` (lägg till `importSource`), `packages/web/src/features/accounting/utils/csv-import.ts` (sätt `importSource: "verifikation"` i `parseVerifikationCsv`), `packages/web/src/features/accounting/components/export-entries-dialog.tsx` (autovalj format).
+**Effort:** XS | **Depends on:** Inget
+
+---
+
+### TODO-V2: Granskning av omatchade kategorier efter import
+**Vad:** Lägg till ett "Granska okategoriserade" steg i importdialogen. Poster som hamnade i fallback-kategorier (`owner_equity`, `supplier_advance`, `deposit`) listas med möjlighet att välja rätt kategori innan de sparas.
+**Varför:** ~50% av en typisk verifikationsjournal är balansrörelser som inte har en exakt kategori-matchning. De importeras korrekt (rätt konton, rätt belopp) men kategorimärkningen är en gissning. Bokföraren kan vilja korrigera detta.
+**Pros:** Bättre datakvalitet för P&L-rapporterna. Eliminerar potentiell förvirring när t.ex. "Ägarinsättning" visas som intäkt.
+**Cons:** Mer komplex importdialog (ytterligare steg). Kräver att kategoriväljare renderas per post.
+**Var att börja:** `packages/web/src/features/accounting/components/import-entries-dialog.tsx` — lägg till steg 2.5 "Granska" efter Preview-steget. Filtrera ut poster vars `category` finns i `BALANCE_SHEET_CATEGORY_IDS`.
+**Effort:** M | **Depends on:** TODO-V1 (så att systemet vet vilka poster som importerades)
