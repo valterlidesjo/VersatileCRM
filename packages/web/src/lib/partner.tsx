@@ -4,34 +4,89 @@ import { db } from "./firebase";
 import { useAuth } from "./auth";
 import { DEFAULT_FEATURES, type FeatureKey, type PlatformRole, type UserRole } from "@crm/shared";
 
+const EMULATION_ID_KEY = "crm-emulating-partner-id";
+const EMULATION_NAME_KEY = "crm-emulating-partner-name";
+
 export interface PartnerContextValue {
   partnerId: string;
   role: UserRole;
   platformRole: PlatformRole | null;
   features: Record<FeatureKey, boolean>;
+  /** Ordered list of enabled KPI IDs for this partner's dashboard.
+   *  Null = not yet loaded. Undefined in Firestore = use frontend defaults. */
+  dashboardKpis: string[] | null;
+  /** Returns true always during emulation (all nav accessible), otherwise real feature state. */
   isFeatureEnabled: (key: FeatureKey) => boolean;
+  /** Always returns the partner's actual feature toggle state. Used for emulation indicators. */
+  isReallyEnabled: (key: FeatureKey) => boolean;
+  isEmulating: boolean;
+  emulatedPartnerName: string | null;
+  startEmulation: (partnerId: string, partnerName: string) => void;
+  stopEmulation: () => void;
 }
 
 const PartnerContext = createContext<PartnerContextValue | null>(null);
 
+/*
+ * Emulation state machine:
+ *
+ *   NOT_EMULATING ──startEmulation(id, name)──▶ EMULATING(id, name)
+ *        ▲                                             │
+ *        └──────────stopEmulation()───────────────────┘
+ *
+ * sessionStorage persists emulation across page refreshes.
+ * partnerId is overridden to the emulated partner's id.
+ * isFeatureEnabled always returns true during emulation (all nav visible).
+ * isReallyEnabled returns actual partner feature state (for indicators).
+ */
 export function PartnerProvider({ children }: { children: ReactNode }) {
   const authState = useAuth();
-  const [features, setFeatures] = useState<Record<FeatureKey, boolean>>(DEFAULT_FEATURES);
 
-  const partnerId = authState.status === "authenticated" ? authState.partnerId : null;
+  const ownPartnerId = authState.status === "authenticated" ? authState.partnerId : null;
+
+  // Single object so id+name are always in sync — impossible to have one without the other.
+  const [emulation, setEmulation] = useState<{ id: string; name: string } | null>(() => {
+    const id = sessionStorage.getItem(EMULATION_ID_KEY);
+    const name = sessionStorage.getItem(EMULATION_NAME_KEY);
+    return id && name ? { id, name } : null;
+  });
+  const [features, setFeatures] = useState<Record<FeatureKey, boolean>>(DEFAULT_FEATURES);
+  // null = loading; string[] = loaded (may be empty, handled by dashboard with DEFAULT_DASHBOARD_KPIS)
+  const [dashboardKpis, setDashboardKpis] = useState<string[] | null>(null);
+
+  // Clear stale emulation keys if the resolved user is not a superAdmin.
+  // Handles manual sessionStorage manipulation by non-admin users.
+  useEffect(() => {
+    if (authState.status !== "authenticated") return;
+    if (authState.platformRole !== "superAdmin" && emulation !== null) {
+      sessionStorage.removeItem(EMULATION_ID_KEY);
+      sessionStorage.removeItem(EMULATION_NAME_KEY);
+      setEmulation(null);
+    }
+  }, [authState, emulation]);
+
+  const isEmulating = emulation !== null;
+  const activePartnerId = emulation?.id ?? ownPartnerId;
 
   useEffect(() => {
-    if (!partnerId) return;
+    if (!activePartnerId) return;
 
-    const docRef = doc(db, "partners", partnerId);
+    const docRef = doc(db, "partners", activePartnerId);
     const unsubscribe = onSnapshot(
       docRef,
       (snap) => {
         if (snap.exists()) {
           const data = snap.data();
-          if (data.features) {
-            setFeatures({ ...DEFAULT_FEATURES, ...(data.features as Record<FeatureKey, boolean>) });
-          }
+          setFeatures(
+            data.features
+              ? { ...DEFAULT_FEATURES, ...(data.features as Record<FeatureKey, boolean>) }
+              : DEFAULT_FEATURES
+          );
+          // Explicitly undefined in Firestore → null here, dashboard uses DEFAULT_DASHBOARD_KPIS
+          setDashboardKpis(Array.isArray(data.dashboardKpis) ? (data.dashboardKpis as string[]) : null);
+        } else {
+          setFeatures(DEFAULT_FEATURES);
+          setDashboardKpis(null);
         }
       },
       (err) => {
@@ -40,14 +95,37 @@ export function PartnerProvider({ children }: { children: ReactNode }) {
     );
 
     return () => unsubscribe();
-  }, [partnerId]);
+  }, [activePartnerId]);
+
+  const startEmulation = (partnerId: string, partnerName: string) => {
+    if (authState.status !== "authenticated" || authState.platformRole !== "superAdmin") return;
+    sessionStorage.setItem(EMULATION_ID_KEY, partnerId);
+    sessionStorage.setItem(EMULATION_NAME_KEY, partnerName);
+    setEmulation({ id: partnerId, name: partnerName });
+    setFeatures(DEFAULT_FEATURES);
+    setDashboardKpis(null);
+  };
+
+  const stopEmulation = () => {
+    sessionStorage.removeItem(EMULATION_ID_KEY);
+    sessionStorage.removeItem(EMULATION_NAME_KEY);
+    setEmulation(null);
+  };
+
+  const isReallyEnabled = (key: FeatureKey) => features[key] ?? true;
 
   const value: PartnerContextValue = {
-    partnerId: authState.status === "authenticated" ? authState.partnerId : "",
+    partnerId: activePartnerId ?? "",
     role: authState.status === "authenticated" ? authState.role : "user",
     platformRole: authState.status === "authenticated" ? authState.platformRole : null,
     features,
-    isFeatureEnabled: (key) => features[key] ?? true,
+    dashboardKpis,
+    isFeatureEnabled: (key) => (isEmulating ? true : isReallyEnabled(key)),
+    isReallyEnabled,
+    isEmulating,
+    emulatedPartnerName: emulation?.name ?? null,
+    startEmulation,
+    stopEmulation,
   };
 
   return (

@@ -23,6 +23,10 @@ dist-ssr
 # TanStack Router (auto-generated)
 **/routeTree.gen.ts
 
+# Internal docs (not for repo)
+TODOS.md
+CLAUDE.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

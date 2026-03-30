@@ -24,7 +24,7 @@ export function PipelineCard({ customer }: PipelineCardProps) {
       style={style}
       className={cn(
         "group rounded-lg border border-border bg-white p-3 shadow-sm transition-shadow hover:shadow-md",
-        isDragging && "z-50 shadow-lg opacity-90 rotate-1"
+        isDragging && "opacity-0 pointer-events-none"
       )}
     >
       <div className="flex items-start gap-2">

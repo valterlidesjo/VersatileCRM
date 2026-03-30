@@ -48,3 +48,19 @@ export type {
   ProductVariant as ProductVariantType,
   ShopifyIntegrationConfig as ShopifyIntegrationConfigType,
 } from "./product";
+
+export {
+  Currency,
+  CURRENCY_LABELS,
+  PurchaseOrderStatus,
+  PurchaseOrderItem,
+  PurchaseOrder,
+  calculateItemCostSEK,
+  calculatePOTotalSEK,
+} from "./purchase-order";
+export type {
+  Currency as CurrencyType,
+  PurchaseOrderStatus as PurchaseOrderStatusType,
+  PurchaseOrderItem as PurchaseOrderItemType,
+  PurchaseOrder as PurchaseOrderType,
+} from "./purchase-order";

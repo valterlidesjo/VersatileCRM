@@ -102,4 +102,63 @@ describe("derivePeriodRange", () => {
       });
     });
   });
+
+  describe("last-30-days", () => {
+    it("start is 30 days before today, afterEnd is tomorrow", () => {
+      expect(derivePeriodRange("last-30-days", d("2026-03-16"))).toEqual({
+        start: "2026-02-14",
+        afterEnd: "2026-03-17",
+      });
+    });
+
+    it("year boundary: Jan 15 → rolls back into Dec of previous year", () => {
+      expect(derivePeriodRange("last-30-days", d("2026-01-15"))).toEqual({
+        start: "2025-12-16",
+        afterEnd: "2026-01-16",
+      });
+    });
+
+    it("Dec 31: rolls back into Dec same year, afterEnd is Jan 1 next year", () => {
+      expect(derivePeriodRange("last-30-days", d("2026-12-31"))).toEqual({
+        start: "2026-12-01",
+        afterEnd: "2027-01-01",
+      });
+    });
+  });
+
+  describe("last-90-days", () => {
+    it("start is 90 days before today", () => {
+      expect(derivePeriodRange("last-90-days", d("2026-03-16"))).toEqual({
+        start: "2025-12-16",
+        afterEnd: "2026-03-17",
+      });
+    });
+
+    it("year boundary: Feb 1 → rolls back into Nov of previous year", () => {
+      expect(derivePeriodRange("last-90-days", d("2026-02-01"))).toEqual({
+        start: "2025-11-03",
+        afterEnd: "2026-02-02",
+      });
+    });
+  });
+
+  describe("last-365-days", () => {
+    it("start is 365 days before today", () => {
+      expect(derivePeriodRange("last-365-days", d("2026-03-16"))).toEqual({
+        start: "2025-03-16",
+        afterEnd: "2026-03-17",
+      });
+    });
+
+    it("afterEnd includes today (tomorrow as exclusive bound)", () => {
+      const range = derivePeriodRange("last-365-days", d("2026-12-31"));
+      expect(range?.afterEnd).toBe("2027-01-01");
+    });
+  });
+
+  describe("all-time", () => {
+    it("returns undefined", () => {
+      expect(derivePeriodRange("all-time", d("2026-03-16"))).toBeUndefined();
+    });
+  });
 });

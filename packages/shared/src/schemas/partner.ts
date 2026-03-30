@@ -5,6 +5,8 @@ export const Partner = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
   features: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Boolean })),
+  /** Ordered list of enabled KPI IDs for the dashboard. Undefined = use frontend defaults. */
+  dashboardKpis: Schema.optional(Schema.Array(Schema.String)),
   createdAt: Schema.String,
   updatedAt: Schema.String,
 });

@@ -1,7 +1,7 @@
 import { CUSTOMER_STATUS_LABELS } from "@crm/shared";
 import type { CustomerStatusType } from "@crm/shared";
 import type { Customer } from "@crm/shared";
-import { Pencil } from "lucide-react";
+import { Pencil, Building2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CustomerListProps {
@@ -54,7 +54,15 @@ export function CustomerList({ customers, loading, onEdit }: CustomerListProps) 
               key={customer.id}
               className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
             >
-              <td className="px-4 py-3 font-medium">{customer.name}</td>
+              <td className="px-4 py-3 font-medium">
+                <span className="flex items-center gap-1.5">
+                  {customer.customerType === "private"
+                    ? <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    : <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  }
+                  {customer.name}
+                </span>
+              </td>
               <td className="px-4 py-3 text-muted-foreground">{customer.location}</td>
               <td className="px-4 py-3 text-muted-foreground">{customer.email}</td>
               <td className="px-4 py-3 text-muted-foreground">{customer.phone}</td>

@@ -1,9 +1,15 @@
 import { describe, it, expect } from "vitest";
-import type { Customer, JournalEntry } from "@crm/shared";
+import type { Customer, JournalEntry, Product, Meeting } from "@crm/shared";
 import {
   countActiveCustomers,
   calculateMrr,
   calculateTotalIncome,
+  calculateShopifyRevenue,
+  calculateShopifyOrderCount,
+  calculateInventoryRetailValue,
+  calculateInventoryCostValue,
+  calculateInventoryUnitCount,
+  countMeetingsThisWeek,
 } from "./calculations";
 
 const makeCustomer = (
@@ -24,7 +30,8 @@ const makeCustomer = (
 
 const makeJournalEntry = (
   transactionType: "income" | "cost",
-  totalAmount: number
+  totalAmount: number,
+  source?: JournalEntry["source"]
 ): JournalEntry => ({
   id: "je1",
   date: "2025-01-01",
@@ -35,6 +42,37 @@ const makeJournalEntry = (
   vatRate: "25",
   vatAmount: totalAmount * 0.25,
   lines: [],
+  ...(source !== undefined && { source }),
+  createdAt: "2025-01-01T00:00:00.000Z",
+  updatedAt: "2025-01-01T00:00:00.000Z",
+});
+
+const makeProduct = (
+  variants: Array<{ stock: number; price?: number; costPrice?: number }>,
+  status: "active" | "archived" = "active"
+): Product => ({
+  id: "p1",
+  title: "Test Product",
+  status,
+  variants: variants.map((v, i) => ({
+    id: `v${i}`,
+    title: `Variant ${i}`,
+    stock: v.stock,
+    ...(v.price !== undefined && { price: v.price }),
+    ...(v.costPrice !== undefined && { costPrice: v.costPrice }),
+  })),
+  createdAt: "2025-01-01T00:00:00.000Z",
+  updatedAt: "2025-01-01T00:00:00.000Z",
+});
+
+const makeMeeting = (startTime: string): Meeting => ({
+  id: "m1",
+  title: "Test Meeting",
+  startTime,
+  endTime: startTime,
+  allDay: false,
+  attendees: [],
+  sendNotifications: false,
   createdAt: "2025-01-01T00:00:00.000Z",
   updatedAt: "2025-01-01T00:00:00.000Z",
 });
@@ -140,5 +178,166 @@ describe("calculateTotalIncome", () => {
       makeJournalEntry("cost", 3000),
     ];
     expect(calculateTotalIncome(entries)).toBe(0);
+  });
+});
+
+describe("calculateShopifyRevenue", () => {
+  it("sums income entries with source=shopify", () => {
+    const entries = [
+      makeJournalEntry("income", 10000, "shopify"),
+      makeJournalEntry("income", 5000, "shopify"),
+    ];
+    expect(calculateShopifyRevenue(entries)).toBe(15000);
+  });
+
+  it("excludes manual income entries", () => {
+    const entries = [
+      makeJournalEntry("income", 10000, "shopify"),
+      makeJournalEntry("income", 5000, "manual"),
+      makeJournalEntry("income", 3000),
+    ];
+    expect(calculateShopifyRevenue(entries)).toBe(10000);
+  });
+
+  it("excludes shopify cost entries", () => {
+    const entries = [
+      makeJournalEntry("income", 10000, "shopify"),
+      makeJournalEntry("cost", 2000, "shopify"),
+    ];
+    expect(calculateShopifyRevenue(entries)).toBe(10000);
+  });
+
+  it("returns 0 for empty array", () => {
+    expect(calculateShopifyRevenue([])).toBe(0);
+  });
+
+  it("returns 0 when no shopify entries", () => {
+    expect(calculateShopifyRevenue([makeJournalEntry("income", 5000, "manual")])).toBe(0);
+  });
+});
+
+describe("calculateShopifyOrderCount", () => {
+  it("counts entries with source=shopify regardless of transaction type", () => {
+    const entries = [
+      makeJournalEntry("income", 10000, "shopify"),
+      makeJournalEntry("income", 5000, "shopify"),
+      makeJournalEntry("income", 3000, "manual"),
+    ];
+    expect(calculateShopifyOrderCount(entries)).toBe(2);
+  });
+
+  it("returns 0 when no shopify entries", () => {
+    expect(calculateShopifyOrderCount([makeJournalEntry("income", 5000)])).toBe(0);
+  });
+
+  it("returns 0 for empty array", () => {
+    expect(calculateShopifyOrderCount([])).toBe(0);
+  });
+});
+
+describe("calculateInventoryRetailValue", () => {
+  it("sums stock × price across all active variants", () => {
+    const products = [
+      makeProduct([{ stock: 10, price: 500 }, { stock: 5, price: 300 }]),
+    ];
+    expect(calculateInventoryRetailValue(products)).toBe(6500);
+  });
+
+  it("treats missing price as 0", () => {
+    const products = [makeProduct([{ stock: 10 }])];
+    expect(calculateInventoryRetailValue(products)).toBe(0);
+  });
+
+  it("excludes archived products", () => {
+    const products = [
+      makeProduct([{ stock: 10, price: 500 }], "active"),
+      makeProduct([{ stock: 5, price: 300 }], "archived"),
+    ];
+    expect(calculateInventoryRetailValue(products)).toBe(5000);
+  });
+
+  it("returns 0 for empty array", () => {
+    expect(calculateInventoryRetailValue([])).toBe(0);
+  });
+});
+
+describe("calculateInventoryCostValue", () => {
+  it("sums stock × costPrice across active variants", () => {
+    const products = [makeProduct([{ stock: 10, costPrice: 200 }, { stock: 5, costPrice: 100 }])];
+    expect(calculateInventoryCostValue(products)).toBe(2500);
+  });
+
+  it("treats missing costPrice as 0 (graceful fallback until TODO-D3 data exists)", () => {
+    const products = [makeProduct([{ stock: 10 }])];
+    expect(calculateInventoryCostValue(products)).toBe(0);
+  });
+
+  it("returns 0 for empty array", () => {
+    expect(calculateInventoryCostValue([])).toBe(0);
+  });
+});
+
+describe("calculateInventoryUnitCount", () => {
+  it("sums stock across all active variants", () => {
+    const products = [
+      makeProduct([{ stock: 10 }, { stock: 5 }]),
+      makeProduct([{ stock: 3 }]),
+    ];
+    expect(calculateInventoryUnitCount(products)).toBe(18);
+  });
+
+  it("excludes archived products", () => {
+    const products = [
+      makeProduct([{ stock: 10 }], "active"),
+      makeProduct([{ stock: 5 }], "archived"),
+    ];
+    expect(calculateInventoryUnitCount(products)).toBe(10);
+  });
+
+  it("returns 0 for empty array", () => {
+    expect(calculateInventoryUnitCount([])).toBe(0);
+  });
+});
+
+describe("countMeetingsThisWeek", () => {
+  // Reference: 2026-03-16 is a Monday
+  const MONDAY = new Date("2026-03-16T10:00:00");
+
+  it("counts meetings in the current week (Mon–Sun)", () => {
+    const meetings = [
+      makeMeeting("2026-03-16T09:00:00"), // Monday — in
+      makeMeeting("2026-03-18T14:00:00"), // Wednesday — in
+      makeMeeting("2026-03-22T10:00:00"), // Sunday — in
+    ];
+    expect(countMeetingsThisWeek(meetings, MONDAY)).toBe(3);
+  });
+
+  it("excludes meetings from previous week", () => {
+    const meetings = [
+      makeMeeting("2026-03-15T10:00:00"), // Sunday of previous week — out
+      makeMeeting("2026-03-16T10:00:00"), // Monday — in
+    ];
+    expect(countMeetingsThisWeek(meetings, MONDAY)).toBe(1);
+  });
+
+  it("excludes meetings from next week", () => {
+    const meetings = [
+      makeMeeting("2026-03-22T23:59:00"), // Sunday — in
+      makeMeeting("2026-03-23T00:00:00"), // Next Monday — out
+    ];
+    expect(countMeetingsThisWeek(meetings, MONDAY)).toBe(1);
+  });
+
+  it("returns 0 for empty array", () => {
+    expect(countMeetingsThisWeek([], MONDAY)).toBe(0);
+  });
+
+  it("handles Sunday as reference date (week starts Monday)", () => {
+    const SUNDAY = new Date("2026-03-22T10:00:00"); // Sunday of same week
+    const meetings = [
+      makeMeeting("2026-03-16T10:00:00"), // Monday of that week — in
+      makeMeeting("2026-03-22T23:00:00"), // Sunday of that week — in
+    ];
+    expect(countMeetingsThisWeek(meetings, SUNDAY)).toBe(2);
   });
 });

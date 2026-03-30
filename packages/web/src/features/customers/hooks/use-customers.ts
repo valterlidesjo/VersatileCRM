@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { partnerCol, partnerDocRef } from "@/lib/firebase-partner";
 import { usePartner } from "@/lib/partner";
-import type { Customer, ContactUser } from "@crm/shared";
+import type { Customer, ContactUser, CustomerStatusType } from "@crm/shared";
 import type { CustomerFormData, UserFormData } from "../components/form-fields";
 
 export function useCustomers() {
@@ -54,10 +54,12 @@ export function useCustomers() {
   }, [partnerId]);
 
   const addCustomer = useCallback(
-    async (data: { customer: CustomerFormData; user: UserFormData }) => {
+    async (data: { customer: CustomerFormData; user: UserFormData }): Promise<string> => {
       const now = new Date().toISOString();
+      const isPrivate = data.customer.customerType === "private";
 
       const customerDoc = await addDoc(partnerCol(partnerId, "customers"), {
+        customerType: data.customer.customerType,
         name: data.customer.name,
         location: data.customer.location,
         phone: data.customer.phone,
@@ -69,6 +71,9 @@ export function useCustomers() {
         ...(data.customer.orgNumber && { orgNumber: data.customer.orgNumber }),
         ...(data.customer.legalName && { legalName: data.customer.legalName }),
         ...(data.customer.mrr !== "" && { mrr: data.customer.mrr }),
+        ...(isPrivate && data.customer.firstName && { firstName: data.customer.firstName }),
+        ...(isPrivate && data.customer.lastName && { lastName: data.customer.lastName }),
+        ...(isPrivate && data.customer.personalNumber && { personalNumber: data.customer.personalNumber }),
         createdAt: now,
         updatedAt: now,
       });
@@ -82,6 +87,8 @@ export function useCustomers() {
         createdAt: now,
         updatedAt: now,
       });
+
+      return customerDoc.id;
     },
     [partnerId]
   );
@@ -89,7 +96,9 @@ export function useCustomers() {
   const updateCustomer = useCallback(
     async (id: string, data: CustomerFormData) => {
       const now = new Date().toISOString();
+      const isPrivate = data.customerType === "private";
       await updateDoc(partnerDocRef(partnerId, "customers", id), {
+        customerType: data.customerType,
         name: data.name,
         location: data.location,
         phone: data.phone,
@@ -101,6 +110,9 @@ export function useCustomers() {
         orgNumber: data.orgNumber || null,
         legalName: data.legalName || null,
         mrr: data.mrr !== "" ? data.mrr : null,
+        firstName: isPrivate ? (data.firstName || null) : null,
+        lastName: isPrivate ? (data.lastName || null) : null,
+        personalNumber: isPrivate ? (data.personalNumber || null) : null,
         updatedAt: now,
       });
     },
@@ -136,5 +148,15 @@ export function useCustomers() {
     [partnerId]
   );
 
-  return { customers, loading, error, addCustomer, updateCustomer, updateUser, fetchContactUser };
+  const updateCustomerStatus = useCallback(
+    async (id: string, status: CustomerStatusType) => {
+      await updateDoc(partnerDocRef(partnerId, "customers", id), {
+        status,
+        updatedAt: new Date().toISOString(),
+      });
+    },
+    [partnerId]
+  );
+
+  return { customers, loading, error, addCustomer, updateCustomer, updateCustomerStatus, updateUser, fetchContactUser };
 }

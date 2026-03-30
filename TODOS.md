@@ -7,13 +7,9 @@ Context: E-com startup, badrumsspeglar, 10 SKUs, Sverige/SEK, 2 användare (ekon
 
 ## P1 — Kritiska (blockerar att systemet fungerar som primär redovisning)
 
-### TODO-1: Datumfilter per period i Accounting (limit(200)-fix)
+### ✅ TODO-1: Datumfilter per period i Accounting (limit(200)-fix) — DONE
 **Vad:** Lägg till månads/kvartals-väljare i Accounting-sidan. limit(200) appliceras per vald period istället för globalt.
-**Varför:** Med automatisk Shopify-bokföring nås 200-gränsen på få månader — äldre poster försvinner från vyn. Bokföraren kan inte se gamla poster → skatteunderlag fel.
-**Pros:** Enkel fix, matchar hur bokförare faktiskt jobbar (per period).
-**Cons:** Kräver nytt Firestore-index på (date, partnerId).
-**Var att börja:** `packages/web/src/features/accounting/`, `packages/web/src/routes/accounting/index.tsx`
-**Effort:** S | **Depends on:** Inget
+**Implementerat:** Period-väljare med "this-month", "last-month", "this-quarter", "last-quarter", "all-time" + localStorage-persistens. Se `packages/web/src/routes/accounting/index.tsx`.
 
 ---
 
@@ -59,12 +55,32 @@ Context: E-com startup, badrumsspeglar, 10 SKUs, Sverige/SEK, 2 användare (ekon
 
 ## P2 — Viktiga (förbättrar systemet markant)
 
-### TODO-5: Dashboard-KPIer anpassade för e-com
-**Vad:** Ersätt 'Active Customers' + 'MRR' (B2B-mått) med: (1) Shopify-intäkter senaste 30 dagarna (från journalEntries med source='shopify'), (2) Lagervärde (summa stock × inköpspris), (3) Bruttomarginal %, (4) Antal Shopify-ordrar senaste 30d. Fixa det hårdkodade `meetingsThisWeek: 0`.
-**Varför:** Nuvarande KPIer är meningslösa för e-com. MRR är ett SaaS-mått. Lagervärde är den viktigaste KPIn för lagerhållande handel.
-**Pros:** Dashboard blir faktiskt användbar.
-**Cons:** Kräver TODO-2 (inköpspris) för lagervärde.
-**Effort:** M | **Depends on:** TODO-2 (för lagervärde), TODO-4 (för Shopify-intäkter)
+### ✅ TODO-5: Dashboard-KPIer anpassade för e-com — DONE
+**Implementerat (2026-03-16):**
+- `JournalEntry.source: 'manual' | 'shopify' | 'import'` — nytt fält, supersedes TODO-V1's `importSource`
+- `ProductVariant.costPrice?: number` — nytt fält, möjliggör lagervärde till kostnad och bruttomarginal när TODO-D3/TODO-2 fyller i data
+- `Partner.dashboardKpis?: string[]` — per-partner KPI-konfiguration i Firestore
+- Tidsperiod-toggle på dashboard: 30 dagar / 3 mån / 12 mån / Allt (rullfönster, ej kalendermånader)
+- KPI-katalog med 9 KPIer: `shopify_revenue`, `shopify_orders`, `inventory_retail_value`, `inventory_cost_value`, `inventory_units`, `total_income`, `active_customers`, `mrr`, `meetings_this_week`
+- `meetingsThisWeek: 0` är fixat — hämtar nu faktiska möten via `useMeetings()`
+- Konfigurationsvy i Settings (superAdmin-only): checkboxar per KPI, sparar till Firestore
+- **Deferred:** Bruttomarginal % och lagervärde till kostnad visar 0 tills TODO-D3 + TODO-2 fyller i `costPrice`-data
+
+**Nyckelkfiler:**
+- `packages/shared/src/schemas/accounting.ts` (source-fält)
+- `packages/shared/src/schemas/product.ts` (costPrice-fält)
+- `packages/shared/src/schemas/partner.ts` (dashboardKpis-fält)
+- `packages/web/src/features/dashboard/utils/kpi-catalog.ts` (KPI-katalog)
+- `packages/web/src/features/dashboard/hooks/use-dashboard-stats.ts`
+- `packages/web/src/features/settings/components/dashboard-kpi-config.tsx`
+
+### TODO-5b: Bruttomarginal % KPI på dashboard
+**Vad:** Lägg till en ny KPI-tile: `(intäkt - COGS) / intäkt = X%`. KPI-ID: `gross_margin_pct`.
+**Varför:** Viktigaste e-com-hälsomåttet — visar om produkterna är lönsamma.
+**Pros:** Ger omedelbar insikt i marginalutveckling. Kan sättas i förhållande till tidsperiod (trend).
+**Cons:** Returnerar 0 tills `costPrice` finns på alla varianter.
+**Var att börja:** `calculations.ts` (ny funktion `calculateGrossMarginPct`), `kpi-catalog.ts` (lägg till `gross_margin_pct`), `use-dashboard-stats.ts` (exponera värdet).
+**Effort:** XS (när data finns) | **Depends on:** TODO-D3 (costPrice-fält) + TODO-2 (inköpspris i purchase orders)
 
 ---
 
@@ -85,6 +101,45 @@ Context: E-com startup, badrumsspeglar, 10 SKUs, Sverige/SEK, 2 användare (ekon
 **Cons:** Risk för prematur abstraktion om CDON aldrig prioriteras.
 **Var att börja:** `packages/shared/src/schemas/marketplace-order.ts` (schema), sedan refaktorera Shopify-webhook.
 **Effort:** XL | **Depends on:** TODO-4
+
+---
+
+### TODO-9: Demo-läge / Gäst-genomgång
+**Vad:** Lägg till en "Try Demo" / "Se en demo"-knapp på inloggningsskärmen. Klick öppnar ett guided demo-mode med read-only mock-data (ej Firebase-anrop) och en steg-för-steg tooltip-tur som visar Dashboard → Customers → Pipeline → Accounting → Inventory. Demo-sessionen är stateless (ingen databas). En "Exit Demo"-banner syns alltid längst upp.
+**Varför:** Potentiella kunder (eller partners) vill se systemet utan att ha ett konto. Eliminerar behovet av screen-inspelningar eller manuella demos. Låg konverteringsbarriär.
+**Pros:** Enkel onboarding för nya kunder, kan ersätta säljdemos.
+**Cons:** Kräver mock-data-lager och en tour-komponent (t.ex. `driver.js` eller custom). Mock-data måste hållas uppdaterat med verklig UI.
+**Var att börja:**
+1. `packages/web/src/lib/demo-mode.ts` — `isDemoMode()` context + mock-data för customers, invoices, journal entries, products
+2. `packages/web/src/routes/__root.tsx` — "Try Demo"-knapp på LoginScreen, `DemoBanner` komponent
+3. Skydda alla write-operationer med `if (isDemoMode()) return` guard
+4. Tour-bibliotek: `driver.js` (lättviktigt, ~10kb) eller custom tooltip-kedja
+**Effort:** M | **Depends on:** Inget
+
+---
+
+## P2 — Viktiga (förbättrar systemet markant) — UX
+
+### TODO-10: Förbättrad kunddialog — privat- och företagskunder
+**Vad:** Refaktorera "Add Customer"-dialogen så att användaren kan välja kundtyp: **Företag** (nuvarande, med org.nr, VAT, etc.) eller **Privatperson** (förnamn, efternamn, personnummer valfritt, ingen firmabeteckning). Schemat i `packages/shared/src/schemas/` behöver ett `customerType: 'business' | 'private'`-fält. UI byter fält dynamiskt beroende på valt kundtyp.
+**Varför:** Företaget säljer nu till konsumenter (B2C via Shopify) och kan vilja registrera privatpersoner som kunder manuellt — t.ex. för service-ärenden eller direktförsäljning.
+**Pros:** Stödjer B2B och B2C i samma system. Ger tydligare kundlista och bättre segmentering i rapporter.
+**Cons:** Kräver schema-ändring + migrering av befintliga kunddokument (alla befintliga kunder är företag — lägg till `customerType: 'business'` som default vid migration).
+**Var att börja:**
+1. `packages/shared/src/schemas/` — lägg till `customerType` diskriminerad union eller `type`-fält på Customer-schemat
+2. `packages/web/src/features/customers/components/add-customer-dialog.tsx` — tab eller radio för Företag/Privat, byt fält dynamiskt
+3. Kundlista: visa namn korrekt (företagsnamn vs. "Förnamn Efternamn"), ev. en ikon för kundtyp
+**Effort:** M | **Depends on:** Inget
+
+---
+
+### TODO-11: "Sälj"-knapp i lager öppnar skapa-kund-dialog
+**Vad:** "Sälj"-knappen under ett lagerprodukt ska — utöver nuvarande flöde — ha en genväg till att skapa en ny kund direkt, utan att behöva navigera bort från lagervyn. T.ex. en extra knapp/länk i säljdialogen: "Skapa ny kund" som öppnar add-customer-dialogen som ett modal ovanpå.
+**Varför:** Sälj-flödet i lager är riktat mot direktförsäljning (ej via Shopify). Det är naturligt att behöva skapa en ny kund i samma session.
+**Pros:** Smidigare försäljningsflöde, färre navigeringshopp.
+**Cons:** Stacking av dialogs — håll det enkelt, ev. sheet-panel istället för modal-i-modal.
+**Var att börja:** `packages/web/src/features/inventory/` — identifiera säljdialogen, lägg till "Skapa ny kund"-knapp som triggar `add-customer-dialog` med callback för att välja det nyskapade kund-ID.
+**Effort:** S | **Depends on:** TODO-10 (ny kunddialogsupport för privat/företag)
 
 ---
 
@@ -118,6 +173,59 @@ Context: E-com startup, badrumsspeglar, 10 SKUs, Sverige/SEK, 2 användare (ekon
 
 ---
 
+## Security
+
+### SEC-CRIT-1: storage.rules — cross-partner file access
+All authenticated users can read/write files from any partner. A user from partner A can access partner B's files if they know the path.
+**Fix:** Add `partnerId` validation matching the pattern used in Firestore rules — check that `allowedEmails/{email}.partnerId == partnerId`.
+**File:** `storage.rules:6-8`
+**Effort:** XS
+
+---
+
+### SEC-CRIT-2: cors.json — wildcard origin
+`"origin": ["*"]` allows any website to make CORS requests against storage.
+**Fix:** Restrict to specific production domain(s), e.g. `["https://your-domain.com"]`.
+**File:** `cors.json`
+**Effort:** XS
+
+---
+
+### SEC-HIGH-1: Privilege escalation via allowedEmails
+An admin can update their own `allowedEmails` document to add `platformRole: "superAdmin"`. No rule prevents this.
+**Fix:** Add Firestore rule that blocks changes to `platformRole` by non-superAdmins:
+```
+&& !('platformRole' in request.resource.data.diff(resource.data).changedKeys())
+```
+**File:** `firestore.rules:187-191`
+**Effort:** XS
+
+---
+
+### SEC-HIGH-2: Shopify secrets stored unencrypted in Firestore
+`accessToken` and `webhookSecret` are stored in plain text in Firestore under `integrations/shopify/config`. A breach or misconfigured rule leaks full Shopify Admin API access.
+**Fix:** Move secrets to Firebase Secret Manager. Load only in Cloud Functions via `defineSecret()`.
+**File:** `packages/shared/src/schemas/product.ts:38`
+**Effort:** M
+
+---
+
+### SEC-HIGH-3: Google Calendar OAuth token in sessionStorage
+Token is readable via DevTools and not cleared on logout.
+**Fix:** Clear token in the main `signOut()` function in `auth.tsx`. Consider server-side token handling long-term.
+**File:** `packages/web/src/lib/google-calendar.tsx:100-101`
+**Effort:** XS
+
+---
+
+### SEC-MED-1: Cloud Functions syncShopifyProducts uses invoker: "public"
+Auth check happens inside the function, not at the framework level. A misconfiguration could expose it.
+**Fix:** Change to `invoker: "authenticated"` in the function config.
+**File:** `packages/functions/src/shopify/sync-products.ts:136`
+**Effort:** XS
+
+---
+
 ## Säkerhetsluckor att fixa
 
 ### SEC-1: useProducts saknar error-state
@@ -145,15 +253,82 @@ Transaktionen har ingen retry-logik. Misslyckad transaktion leder till luckor i 
 
 ---
 
+## Kundönskemål — Prioriterade (2026-03-30)
+
+Inkomna via kundmeddelanden. Implementera dessa i prioriteringsordning.
+
+---
+
+### CUST-1: Momsflik i Accounting *(aligns with TODO-3)*
+
+**Vad:** Ny flik i Accounting-sidan som automatiskt räknar ihop utgående moms (försäljning) och ingående moms (inköp/kostnader) per period, och visar nettomoms att betala till Skatteverket.
+
+**Kunden vill:** Ha en samlad vy så de slipper räkna moms manuellt i huvudet varje månad. Vill implementera tidigt.
+
+**Relation till befintliga TODOs:** Detta är en vidareutveckling och prioritering av TODO-3 (Momsrapport-vy) + TODO-D4 (live momskalkulator i formulär). Kunden bekräftar att detta är högt prioriterat.
+
+**Klarhet:** Tillräckligt tydligt för att starta. Kunden nämnde att de kan skicka ett förslag på layout — be om det om detaljerna behöver specificeras (t.ex. exakt vilka momsrader som ska visas, exportformat för Skatteverket).
+
+**Effort:** M | **Depends on:** TODO-1 (datumfilter, redan klart)
+
+---
+
+### CUST-2: Prishantering — standardpris, reapris, prislogg
+
+**Vad:** I lagervyn (Inventory), lägg till möjlighet att sätta ett **reapris** per produktvariant vid sidan av standardpriset. Reapriset ska:
+1. Automatiskt återgå till standardpriset efter **30 dagar**
+2. Logga alla prisändringar med datum (för att uppfylla svensk prislagstiftning / "realagarna" — man ska kunna bevisa att standardpriset var gällande i minst 30 dagar innan reapriset sattes)
+
+**Kunden vill:** Slippa oroa sig för att reapriset sitter kvar för länge, och ha en logg om Konsumentverket frågar.
+
+**Oklarheter att reda ut innan implementation:**
+- Ska priser synkas tillbaka till Shopify automatiskt när reapriset löper ut, eller bara uppdateras i CRM:et?
+- Ska det finnas en notifikation/varning när ett reapris är på väg att löpa ut (t.ex. 3 dagar kvar)?
+- Var ska "priset" synas — är det `ProductVariant.price` som används, eller ett separat reapris-fält som override:ar vid försäljning?
+
+**Effort:** M–L (beroende på Shopify-synk) | **Depends on:** Inventory-modulen
+
+---
+
+## Kundimport från CSV/Excel — kundönskemål (2026-03-26)
+
+### TODO-CI1: Importera kunder från CSV/Excel ⏳ INVÄNTAR EXEMPELFIL
+
+**Vad:** Ny importfunktion i Customers-vyn som låter användaren ladda upp en CSV eller Excel-fil med kunddata och mappa kolumner till fält i Customer-schemat, förhandsgranskas och importeras till Firestore.
+
+**Status:** Inväntar exempelfil från kunden för att förstå kolumnnamn och dataformat.
+
+**Antaget flöde:**
+1. Knapp "Importera kunder" i kundlistan
+2. Filväljare (`.csv`, `.xlsx`)
+3. Parser läser fil och visar kolumn-preview (rad 1 som headers, rad 2 som exempeldata)
+4. Kolumnmappning: användaren kopplar CSV-kolumn → CRM-fält (namn, org.nr, epost, telefon, adress, etc.)
+5. Valideringsrad: visa antal giltiga / ogiltiga rader
+6. Import: spara giltiga rader till `/partners/{partnerId}/customers/`
+
+**Teknisk plan (skissas innan CSV-exemplet anlänt):**
+- Parser: `papaparse` (CSV) + `xlsx` (Excel/XLSX-stöd)
+- Schema: befintligt `Customer`-schema i `packages/shared/src/schemas/`
+- Ny komponent: `packages/web/src/features/customers/components/import-customers-dialog.tsx`
+- Sätter `source: 'import'` på importerade poster (konsekvent med journalEntry-import)
+
+**Var att börja (när exempelfil finns):**
+1. Analysera exempelfil — fastslå kolumnnamn och om det är CSV eller XLSX
+2. Installera `papaparse` + `xlsx` om XLSX behövs
+3. Bygg importdialog med kolumnmappning och preview
+4. Koppla till Firestore-skrivning med duplikatskydd (org.nr eller epost som nyckel)
+
+**Effort:** M | **Depends on:** Exempelfil från kunden
+
+---
+
 ## Verifikationsjournal import — deferred items (2026-03-16)
 
-### TODO-V1: Källmärkning av importerade verifikationer
-**Vad:** Lägg till ett valfritt `importSource: "verifikation" | "crm"` på `JournalEntry`-schemat.
-**Varför:** I dagsläget finns inget sätt att urskilja vilka poster som kom från en CSV-import kontra skapades manuellt i CRM:et. Utan märkning kan exportdialogen inte föreslå rätt format automatiskt.
-**Pros:** Gör det möjligt att: (1) autovalja exportformat baserat på hur posten skapades, (2) filtrera bort importerade poster från CRM-statistik om kunden vill.
-**Cons:** Schema-ändring kräver att `Schema.optional(Schema.String)` läggs till — ingen Firestore-migration behövs (nullable-fält är bakåtkompatibla). UI-komponenter måste kontrolleras mot `undefined`.
-**Var att börja:** `packages/shared/src/schemas/accounting.ts` (lägg till `importSource`), `packages/web/src/features/accounting/utils/csv-import.ts` (sätt `importSource: "verifikation"` i `parseVerifikationCsv`), `packages/web/src/features/accounting/components/export-entries-dialog.tsx` (autovalj format).
-**Effort:** XS | **Depends on:** Inget
+### TODO-V1: Källmärkning av importerade verifikationer (schema-fält redan lagt till)
+**Uppdatering (2026-03-16):** Det planerade `importSource`-fältet är ersatt av det enhetliga `source: 'manual' | 'shopify' | 'import'`-fältet som lades till i TODO-5. CSV-import ska sätta `source: 'import'`, Shopify-webhook sätter `source: 'shopify'`, manuella poster lämnas `undefined` (= manual).
+**Återstår:** Sätt `source: "import"` i `csv-import.ts` + autovalj exportformat i `export-entries-dialog.tsx` baserat på `source === 'import'`.
+**Var att börja:** `packages/web/src/features/accounting/utils/csv-import.ts` (sätt `source: "import"` i `parseVerifikationCsv`), `packages/web/src/features/accounting/components/export-entries-dialog.tsx` (autovalj format).
+**Effort:** XS | **Depends on:** Inget (schema-fältet finns redan)
 
 ---
 

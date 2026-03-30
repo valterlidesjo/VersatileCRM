@@ -3,7 +3,13 @@ export type Period =
   | "last-month"
   | "this-quarter"
   | "last-quarter"
+  | "last-30-days"
+  | "last-90-days"
+  | "last-365-days"
   | "all-time";
+
+/** Subset of Period used by the dashboard time-period toggle. */
+export type DashboardPeriod = "last-30-days" | "last-90-days" | "last-365-days" | "all-time";
 
 export interface DateRange {
   /** First day of period, inclusive — YYYY-MM-DD */
@@ -16,11 +22,26 @@ function toISODate(year: number, month: number, day: number): string {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+function subtractDays(date: Date, days: number): string {
+  const d = new Date(date);
+  d.setDate(d.getDate() - days);
+  return toISODate(d.getFullYear(), d.getMonth() + 1, d.getDate());
+}
+
+function tomorrowOf(date: Date): string {
+  const d = new Date(date);
+  d.setDate(d.getDate() + 1);
+  return toISODate(d.getFullYear(), d.getMonth() + 1, d.getDate());
+}
+
 /**
  * Returns a date range for the given period.
  * Uses an exclusive upper bound (afterEnd) so that both YYYY-MM-DD and
  * ISO datetime strings are handled correctly by Firestore range queries:
  *   where("date", ">=", start) + where("date", "<", afterEnd)
+ *
+ * Rolling windows (last-30-days etc.) use today as the upper boundary,
+ * so they always include today's entries.
  *
  * @param period - The period to derive a range for
  * @param today  - Reference date (defaults to now; injectable for testing)
@@ -72,5 +93,15 @@ export function derivePeriodRange(period: Period, today = new Date()): DateRange
         afterEnd: toISODate(year, qStart, 1),
       };
     }
+
+    // Rolling windows: start = today - N days, afterEnd = tomorrow (inclusive of today)
+    case "last-30-days":
+      return { start: subtractDays(today, 30), afterEnd: tomorrowOf(today) };
+
+    case "last-90-days":
+      return { start: subtractDays(today, 90), afterEnd: tomorrowOf(today) };
+
+    case "last-365-days":
+      return { start: subtractDays(today, 365), afterEnd: tomorrowOf(today) };
   }
 }

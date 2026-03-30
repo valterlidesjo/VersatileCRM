@@ -14,6 +14,7 @@ interface EditEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entry: JournalEntry | null;
+  categories: AccountCategory[];
   onSave: (id: string, data: Omit<JournalEntry, "id" | "createdAt" | "updatedAt">) => void;
 }
 
@@ -26,8 +27,8 @@ const VAT_OPTIONS: { value: VatRate; label: string }[] = [
 
 const INPUT_CLASS = "w-full rounded-md border border-border bg-background px-3 py-2 text-sm";
 
-export function EditEntryDialog({ open, onOpenChange, entry, onSave }: EditEntryDialogProps) {
-  const form = useTransactionForm(entry ? {
+export function EditEntryDialog({ open, onOpenChange, entry, categories, onSave }: EditEntryDialogProps) {
+  const form = useTransactionForm(categories, entry ? {
     transactionType: entry.transactionType,
     categoryId: entry.category,
     amount: String(entry.totalAmount),
@@ -36,7 +37,7 @@ export function EditEntryDialog({ open, onOpenChange, entry, onSave }: EditEntry
     vatRate: entry.vatRate,
   } : undefined);
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!entry || !form.selectedCategory || !form.amount || !form.date) return;
 

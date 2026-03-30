@@ -41,6 +41,8 @@ export function EditCustomerDialog({ open, onOpenChange, customer, contactUser, 
     setUserForm(toUserForm(contactUser));
   }, [contactUser]);
 
+  const isPrivate = customerForm.customerType === "private";
+
   function handleCustomerChange(field: keyof CustomerFormData, value: string | number | "") {
     setCustomerForm((prev) => ({ ...prev, [field]: value }));
   }
@@ -56,7 +58,14 @@ export function EditCustomerDialog({ open, onOpenChange, customer, contactUser, 
     if (editingUser && contactUser) {
       onSaveUser(contactUser.id, userForm);
     } else {
-      onSaveCustomer(customer.id, customerForm);
+      const finalForm: CustomerFormData = isPrivate
+        ? {
+            ...customerForm,
+            name: `${customerForm.firstName} ${customerForm.lastName}`.trim(),
+            categoryOfWork: "Private",
+          }
+        : customerForm;
+      onSaveCustomer(customer.id, finalForm);
     }
   }
 
@@ -72,14 +81,16 @@ export function EditCustomerDialog({ open, onOpenChange, customer, contactUser, 
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mb-4 flex items-center gap-3">
-          <span className={cn("text-sm font-medium", !editingUser && "text-foreground", editingUser && "text-muted-foreground")}>Customer</span>
-          <Switch checked={editingUser} onCheckedChange={setEditingUser} />
-          <span className={cn("text-sm font-medium", editingUser && "text-foreground", !editingUser && "text-muted-foreground")}>Contact Person</span>
-        </div>
+        {!isPrivate && (
+          <div className="mb-4 flex items-center gap-3">
+            <span className={cn("text-sm font-medium", !editingUser && "text-foreground", editingUser && "text-muted-foreground")}>Customer</span>
+            <Switch checked={editingUser} onCheckedChange={setEditingUser} />
+            <span className={cn("text-sm font-medium", editingUser && "text-foreground", !editingUser && "text-muted-foreground")}>Contact Person</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {editingUser ? (
+          {editingUser && !isPrivate ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Name" required>
                 <input type="text" value={userForm.name} onChange={(e) => handleUserChange("name", e.target.value)} className={INPUT_CLASS} required placeholder="Contact name" />
@@ -92,6 +103,34 @@ export function EditCustomerDialog({ open, onOpenChange, customer, contactUser, 
               </Field>
               <Field label="Email" required>
                 <input type="email" value={userForm.email} onChange={(e) => handleUserChange("email", e.target.value)} className={INPUT_CLASS} required placeholder="person@company.com" />
+              </Field>
+            </div>
+          ) : isPrivate ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="First Name" required>
+                <input type="text" value={customerForm.firstName} onChange={(e) => handleCustomerChange("firstName", e.target.value)} className={INPUT_CLASS} required placeholder="First name" />
+              </Field>
+              <Field label="Last Name" required>
+                <input type="text" value={customerForm.lastName} onChange={(e) => handleCustomerChange("lastName", e.target.value)} className={INPUT_CLASS} required placeholder="Last name" />
+              </Field>
+              <Field label="Email" required>
+                <input type="email" value={customerForm.email} onChange={(e) => handleCustomerChange("email", e.target.value)} className={INPUT_CLASS} required placeholder="person@example.com" />
+              </Field>
+              <Field label="Phone" required>
+                <input type="tel" value={customerForm.phone} onChange={(e) => handleCustomerChange("phone", e.target.value)} className={INPUT_CLASS} required placeholder="+46 70 123 4567" />
+              </Field>
+              <Field label="Location" required>
+                <input type="text" value={customerForm.location} onChange={(e) => handleCustomerChange("location", e.target.value)} className={INPUT_CLASS} required placeholder="Stockholm" />
+              </Field>
+              <Field label="Personal Number (optional)">
+                <input type="text" value={customerForm.personalNumber} onChange={(e) => handleCustomerChange("personalNumber", e.target.value)} className={INPUT_CLASS} placeholder="YYYYMMDD-XXXX" />
+              </Field>
+              <Field label="Status" required>
+                <select value={customerForm.status} onChange={(e) => handleCustomerChange("status", e.target.value)} className={INPUT_CLASS} required>
+                  {STATUS_OPTIONS.map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
               </Field>
             </div>
           ) : (
@@ -159,8 +198,15 @@ export function EditCustomerDialog({ open, onOpenChange, customer, contactUser, 
 }
 
 function toCustomerForm(c: Customer | null): CustomerFormData {
-  if (!c) return { name: "", location: "", phone: "", email: "", status: "not_contacted", categoryOfWork: "", description: "", website: "", orgNumber: "", legalName: "", mrr: "" };
+  if (!c) return {
+    customerType: "business",
+    name: "", location: "", phone: "", email: "",
+    status: "not_contacted", categoryOfWork: "",
+    description: "", website: "", orgNumber: "", legalName: "", mrr: "",
+    firstName: "", lastName: "", personalNumber: "",
+  };
   return {
+    customerType: c.customerType ?? "business",
     name: c.name,
     location: c.location,
     phone: c.phone,
@@ -172,6 +218,9 @@ function toCustomerForm(c: Customer | null): CustomerFormData {
     orgNumber: c.orgNumber ?? "",
     legalName: c.legalName ?? "",
     mrr: c.mrr ?? "",
+    firstName: c.firstName ?? "",
+    lastName: c.lastName ?? "",
+    personalNumber: c.personalNumber ?? "",
   };
 }
 

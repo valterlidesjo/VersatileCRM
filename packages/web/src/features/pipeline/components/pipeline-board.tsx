@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -34,6 +34,20 @@ export function PipelineBoard({
   const [search, setSearch] = useState("");
   const [activeCustomer, setActiveCustomer] = useState<Customer | null>(null);
   const [lostExpanded, setLostExpanded] = useState(false);
+  const [optimisticStatuses, setOptimisticStatuses] = useState<Record<string, CustomerStatusType>>({});
+
+  useEffect(() => {
+    setOptimisticStatuses((prev) => {
+      if (Object.keys(prev).length === 0) return prev;
+      const next = { ...prev };
+      for (const customer of customers) {
+        if (next[customer.id] === customer.status) {
+          delete next[customer.id];
+        }
+      }
+      return next;
+    });
+  }, [customers]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -58,13 +72,14 @@ export function PipelineBoard({
     map[LOST_STAGE.id] = [];
 
     for (const customer of filtered) {
-      const stageId = getStageForStatus(customer.status);
+      const effectiveStatus = optimisticStatuses[customer.id] ?? customer.status;
+      const stageId = getStageForStatus(effectiveStatus);
       if (map[stageId]) {
         map[stageId].push(customer);
       }
     }
     return map;
-  }, [filtered]);
+  }, [filtered, optimisticStatuses]);
 
   function handleDragStart(event: DragStartEvent) {
     const customer = customers.find((c) => c.id === event.active.id);
@@ -84,9 +99,10 @@ export function PipelineBoard({
     const customer = customers.find((c) => c.id === customerId);
     if (!customer) return;
 
-    const currentStage = getStageForStatus(customer.status);
+    const currentStage = getStageForStatus(optimisticStatuses[customerId] ?? customer.status);
     if (currentStage === targetStageId) return;
 
+    setOptimisticStatuses((prev) => ({ ...prev, [customerId]: newStatus }));
     onUpdateStatus(customerId, newStatus);
   }
 

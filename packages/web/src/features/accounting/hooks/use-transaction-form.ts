@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { ACCOUNT_CATEGORIES } from "@crm/shared";
-import type { VatRate } from "@crm/shared";
+import type { AccountCategory, VatRate } from "@crm/shared";
 
-export function useTransactionForm(initial?: {
-  transactionType: "cost" | "income";
-  categoryId: string;
-  amount: string;
-  date: string;
-  description: string;
-  vatRate: VatRate;
-}) {
+export function useTransactionForm(
+  categories: AccountCategory[],
+  initial?: {
+    transactionType: "cost" | "income";
+    categoryId: string;
+    amount: string;
+    date: string;
+    description: string;
+    vatRate: VatRate;
+  }
+) {
   const [transactionType, setTransactionType] = useState<"cost" | "income">(
     initial?.transactionType ?? "cost"
   );
@@ -21,15 +23,15 @@ export function useTransactionForm(initial?: {
   const [description, setDescription] = useState(initial?.description ?? "");
   const [vatRate, setVatRate] = useState<VatRate>(initial?.vatRate ?? "25");
 
-  const filteredCategories = ACCOUNT_CATEGORIES.filter(
+  const filteredCategories = categories.filter(
     (c) => c.transactionType === transactionType
   );
 
-  const selectedCategory = ACCOUNT_CATEGORIES.find((c) => c.id === categoryId);
+  const selectedCategory = categories.find((c) => c.id === categoryId);
 
   function handleCategoryChange(id: string) {
     setCategoryId(id);
-    const cat = ACCOUNT_CATEGORIES.find((c) => c.id === id);
+    const cat = categories.find((c) => c.id === id);
     if (cat) {
       setVatRate(cat.defaultVatRate);
     }

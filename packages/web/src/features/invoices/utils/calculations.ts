@@ -1,10 +1,15 @@
 import type { VatRateType } from "@crm/shared";
 
 export interface InvoiceLineData {
+  type?: "article" | "text";
   description: string;
   quantity: number;
   unitPrice: number;
   vatRate: VatRateType;
+  // Form-only fields — not persisted to Firestore
+  productId?: string;
+  variantId?: string;
+  sku?: string;
 }
 
 export interface VatBreakdownEntry {
@@ -37,6 +42,7 @@ export function calcInvoiceTotals(items: InvoiceLineData[]): InvoiceTotals {
   let subtotal = 0;
 
   for (const item of items) {
+    if (item.type === "text") continue;
     const lineTotal = calcLineTotal(item.quantity, item.unitPrice);
     const lineVat = calcLineVat(item.quantity, item.unitPrice, item.vatRate);
     subtotal += lineTotal;
@@ -62,13 +68,7 @@ export function calcInvoiceTotals(items: InvoiceLineData[]): InvoiceTotals {
   };
 }
 
-export function formatVatNumber(
-  orgNumber: string,
-  isInternational: boolean
-): string {
-  if (isInternational) {
-    const digits = orgNumber.replace(/\D/g, "");
-    return `SE${digits}01`;
-  }
-  return orgNumber;
+export function formatVatNumber(orgNumber: string): string {
+  const digits = orgNumber.replace(/\D/g, "");
+  return `SE${digits}01`;
 }

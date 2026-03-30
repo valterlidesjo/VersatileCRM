@@ -7,6 +7,7 @@ export const FEATURE_KEYS = [
   "quotes",
   "accounting",
   "inventory",
+  "purchaseOrders",
   "settings",
   "profile",
 ] as const;
@@ -21,7 +22,8 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   invoicing: "Invoicing",
   quotes: "Quotes",
   accounting: "Accounting",
-  inventory: "Lager",
+  inventory: "Inventory",
+  purchaseOrders: "Purchase Orders",
   settings: "Settings",
   profile: "Profile",
 };
@@ -35,6 +37,7 @@ export const DEFAULT_FEATURES: Record<FeatureKey, boolean> = {
   quotes: true,
   accounting: true,
   inventory: true,
+  purchaseOrders: true,
   settings: true,
   profile: true,
 };

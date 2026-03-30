@@ -1,11 +1,15 @@
 import type { VatRateType, BillingFrequency } from "@crm/shared";
 
 export interface QuoteLineData {
+  type?: "article" | "text";
   description: string;
   quantity: number;
   unitPrice: number;
   vatRate: VatRateType;
   billingFrequency: BillingFrequency;
+  productId?: string;
+  variantId?: string;
+  sku?: string;
 }
 
 export interface CostEntry {
@@ -67,6 +71,7 @@ export function calcQuoteTotals(items: QuoteLineData[]): QuoteTotals {
   let mrr = 0;
 
   for (const item of items) {
+    if (item.type === "text") continue;
     const lineTotal = calcLineTotal(item.quantity, item.unitPrice);
     const lineVat = calcLineVat(item.quantity, item.unitPrice, item.vatRate);
     subtotal += lineTotal;

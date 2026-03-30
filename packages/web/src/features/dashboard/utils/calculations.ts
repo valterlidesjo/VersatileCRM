@@ -1,4 +1,4 @@
-import type { Customer, JournalEntry } from "@crm/shared";
+import type { Customer, JournalEntry, Product, Meeting } from "@crm/shared";
 
 export function countActiveCustomers(customers: Customer[]): number {
   return customers.filter(
@@ -16,4 +16,62 @@ export function calculateTotalIncome(entries: JournalEntry[]): number {
   return entries
     .filter((e) => e.transactionType === "income")
     .reduce((sum, e) => sum + e.totalAmount, 0);
+}
+
+/** Revenue from entries with source='shopify'. Entries are assumed pre-filtered by date range. */
+export function calculateShopifyRevenue(entries: JournalEntry[]): number {
+  return entries
+    .filter((e) => e.transactionType === "income" && e.source === "shopify")
+    .reduce((sum, e) => sum + e.totalAmount, 0);
+}
+
+/** Count of entries with source='shopify'. Entries are assumed pre-filtered by date range. */
+export function calculateShopifyOrderCount(entries: JournalEntry[]): number {
+  return entries.filter((e) => e.source === "shopify").length;
+}
+
+/** Inventory value at retail price: Σ (stock × price) across all active products. */
+export function calculateInventoryRetailValue(products: Product[]): number {
+  return products
+    .filter((p) => p.status === "active")
+    .flatMap((p) => p.variants)
+    .reduce((sum, v) => sum + v.stock * (v.price ?? 0), 0);
+}
+
+/** Inventory value at cost price: Σ (stock × costPrice) across all active products.
+ *  Returns 0 for variants without costPrice — will show accurate values once TODO-D3 data exists. */
+export function calculateInventoryCostValue(products: Product[]): number {
+  return products
+    .filter((p) => p.status === "active")
+    .flatMap((p) => p.variants)
+    .reduce((sum, v) => sum + v.stock * (v.costPrice ?? 0), 0);
+}
+
+/** Total stock units across all active products. */
+export function calculateInventoryUnitCount(products: Product[]): number {
+  return products
+    .filter((p) => p.status === "active")
+    .flatMap((p) => p.variants)
+    .reduce((sum, v) => sum + v.stock, 0);
+}
+
+/**
+ * Count of meetings with startTime in the current calendar week (Mon–Sun).
+ * Week starts on Monday to align with Swedish convention.
+ */
+export function countMeetingsThisWeek(meetings: Meeting[], today = new Date()): number {
+  // Get Monday of the current week
+  const dayOfWeek = today.getDay(); // 0 = Sun, 1 = Mon, …
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - daysFromMonday);
+  monday.setHours(0, 0, 0, 0);
+
+  const nextMonday = new Date(monday);
+  nextMonday.setDate(monday.getDate() + 7);
+
+  return meetings.filter((m) => {
+    const start = new Date(m.startTime);
+    return start >= monday && start < nextMonday;
+  }).length;
 }

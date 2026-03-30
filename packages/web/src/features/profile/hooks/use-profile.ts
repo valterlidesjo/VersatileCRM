@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { setDoc, onSnapshot } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { partnerSingleDoc } from "@/lib/firebase-partner";
 import { usePartner } from "@/lib/partner";
+import { storage } from "@/lib/firebase";
 import type { CompanyProfile } from "@crm/shared";
 
 export interface CompanyProfileFormData {
@@ -83,5 +85,20 @@ export function useCompanyProfile() {
     [partnerId, profile]
   );
 
-  return { profile, loading, saveProfile };
+  const uploadLogo = useCallback(
+    async (file: File): Promise<string> => {
+      const storageRef = ref(storage, `partners/${partnerId}/logo`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      await setDoc(
+        partnerSingleDoc(partnerId, "companyProfile", "main"),
+        { logoUrl: url, updatedAt: new Date().toISOString() },
+        { merge: true }
+      );
+      return url;
+    },
+    [partnerId]
+  );
+
+  return { profile, loading, saveProfile, uploadLogo };
 }

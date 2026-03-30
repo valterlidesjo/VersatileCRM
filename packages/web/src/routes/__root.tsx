@@ -55,32 +55,47 @@ function RootLayout() {
 function LoginScreen({ denied }: { denied: string | null }) {
   return (
     <div className="flex h-screen items-center justify-center bg-muted">
-      <div className="w-full max-w-sm rounded-lg border border-border bg-background p-8 shadow-sm">
-        <h1 className="mb-2 text-2xl font-semibold text-foreground">CRM</h1>
-        <p className="mb-6 text-sm text-muted-foreground">Sign in to continue</p>
+      <div className="w-full max-w-sm">
+        {/* Logo + brand */}
+        <div className="mb-6 flex flex-col items-center">
+          <img src="/logo.png" alt="VersatileCRM" className="mb-4 h-20 w-auto object-contain" />
+          <h1 className="text-2xl font-semibold text-foreground">VersatileCRM</h1>
+          <p className="mt-1 text-sm text-muted-foreground text-center">
+            E-commerce operations — inventory, accounting &amp; sales in one place.
+          </p>
+        </div>
 
-        {denied && (
-          <div className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-            Access denied for {denied}. Contact an admin to get access.
-          </div>
-        )}
+        <div className="rounded-lg border border-border bg-background p-8 shadow-sm">
+          {denied && (
+            <div className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              Access denied for {denied}. Contact an admin to get access.
+            </div>
+          )}
 
-        <button
-          onClick={() => signIn()}
-          className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-        >
-          <GoogleIcon />
-          Sign in with Google
-        </button>
-
-        {denied && (
           <button
-            onClick={() => signOut()}
-            className="mt-3 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => signIn()}
+            className="flex w-full items-center justify-center gap-2 rounded-md border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
           >
-            Try a different account
+            <GoogleIcon />
+            Sign in with Google
           </button>
-        )}
+
+          {denied && (
+            <button
+              onClick={() => signOut()}
+              className="mt-3 w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Try a different account
+            </button>
+          )}
+        </div>
+
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Don't have an account?{" "}
+          <a href="mailto:hello@versatilecrm.com" className="underline hover:text-foreground transition-colors">
+            Contact us
+          </a>
+        </p>
       </div>
     </div>
   );

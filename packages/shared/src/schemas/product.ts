@@ -5,6 +5,7 @@ export const ProductVariant = Schema.Struct({
   title: Schema.String,
   sku: Schema.optional(Schema.String),
   price: Schema.optional(Schema.Number),
+  costPrice: Schema.optional(Schema.Number),
   stock: Schema.Number,
   imageUrl: Schema.optional(Schema.String),
   shopifyVariantId: Schema.optional(Schema.String),

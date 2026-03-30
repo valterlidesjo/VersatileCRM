@@ -33,6 +33,10 @@ Internal CRM system built as a monorepo with npm workspaces. Handles customer pr
 
 Strict mode enabled. Shared base config in `tsconfig.base.json`. Each package extends it. Target ES2022 with bundler module resolution.
 
+## Language
+
+All UI text, labels, error messages, and user-facing strings must be in **English**, regardless of the language used in the prompt or request. This applies to all new features and changes.
+
 ## Key Patterns
 
 - Schemas defined in `packages/shared/src/schemas/` — used by both web and functions

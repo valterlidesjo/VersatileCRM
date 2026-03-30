@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { ChevronDown, ChevronRight, Eye, Trash2 } from "lucide-react";
 import { PartnerFeaturesTab } from "./partner-features-tab";
 import { PartnerMembersTab } from "./partner-members-tab";
 import type { PartnerDoc } from "../hooks/use-partners";
 import type { FeatureKey } from "@crm/shared";
+import { usePartner } from "@/lib/partner";
 
 type Tab = "members" | "features";
 
@@ -22,6 +24,13 @@ export function PartnerCard({ partner, onUpdateName, onUpdateFeatures, onDelete 
   const [savingName, setSavingName] = useState(false);
   const [savingFeatures, setSavingFeatures] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const { startEmulation } = usePartner();
+  const navigate = useNavigate();
+
+  const handleEmulate = () => {
+    startEmulation(partner.id, partner.name);
+    navigate({ to: "/" });
+  };
 
   const handleNameSave = async () => {
     if (!nameValue.trim() || nameValue === partner.name) {
@@ -99,6 +108,14 @@ export function PartnerCard({ partner, onUpdateName, onUpdateFeatures, onDelete 
         )}
 
         <span className="font-mono text-xs text-muted-foreground">{partner.id}</span>
+
+        <button
+          onClick={handleEmulate}
+          title="Emulate this partner"
+          className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <Eye className="h-3.5 w-3.5" />
+        </button>
 
         {confirmDelete ? (
           <div className="flex items-center gap-1">

@@ -14,6 +14,10 @@ export const Customer = Schema.Struct({
   orgNumber: Schema.optional(Schema.String),
   legalName: Schema.optional(Schema.String),
   mrr: Schema.optional(Schema.Number),
+  customerType: Schema.optional(Schema.Literal("business", "private")),
+  firstName: Schema.optional(Schema.String),
+  lastName: Schema.optional(Schema.String),
+  personalNumber: Schema.optional(Schema.String),
   createdAt: Schema.String,
   updatedAt: Schema.String,
 });

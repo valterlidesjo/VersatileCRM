@@ -42,6 +42,10 @@ export const JournalEntry = Schema.Struct({
   vatRate: VatRate,
   vatAmount: Schema.Number,
   lines: Schema.Array(JournalEntryLine),
+  /** Origin of this entry. Undefined = manually created. Supersedes the planned importSource field. */
+  source: Schema.optional(
+    Schema.Union(Schema.Literal("manual"), Schema.Literal("shopify"), Schema.Literal("import"))
+  ),
   createdAt: Schema.String,
   updatedAt: Schema.String,
 });

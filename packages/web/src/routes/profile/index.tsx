@@ -190,6 +190,87 @@ function InlineField({
   );
 }
 
+// ─── LogoUpload ───────────────────────────────────────────────────────────────
+
+function LogoUpload({
+  currentUrl,
+  editable,
+  onUpload,
+}: {
+  currentUrl?: string;
+  editable: boolean;
+  onUpload: (file: File) => Promise<void>;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | undefined>(currentUrl);
+
+  useEffect(() => {
+    setPreview(currentUrl);
+  }, [currentUrl]);
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+    setError(null);
+    setUploading(true);
+    try {
+      await onUpload(file);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+      setPreview(currentUrl); // revert preview on failure
+    } finally {
+      setUploading(false);
+      // Reset input so the same file can be re-selected after an error
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="py-3 border-b border-border/50 last:border-0">
+      <p className="text-xs font-medium text-muted-foreground mb-2">Logo (used in invoices & quotes)</p>
+      <div className="flex items-center gap-4">
+        {preview ? (
+          <img
+            src={preview}
+            alt="Company logo"
+            className="h-12 max-w-[140px] object-contain rounded border border-border bg-muted/20 p-1"
+          />
+        ) : (
+          <div className="h-12 w-24 rounded border border-dashed border-border bg-muted/20 flex items-center justify-center">
+            <span className="text-xs text-muted-foreground">No logo</span>
+          </div>
+        )}
+        {editable && (
+          <>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/50 transition-colors disabled:opacity-50"
+            >
+              {uploading ? "Uploading…" : preview ? "Replace" : "Upload"}
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/png,image/jpeg,image/svg+xml,image/webp"
+              className="hidden"
+              onChange={handleFile}
+            />
+          </>
+        )}
+      </div>
+      {error && (
+        <p className="mt-2 text-xs text-destructive">{error}</p>
+      )}
+    </div>
+  );
+}
+
 // ─── FSkattRow ────────────────────────────────────────────────────────────────
 
 function FSkattRow({
@@ -286,7 +367,7 @@ function profileToForm(profile: CompanyProfile | null): CompanyProfileFormData {
 // ─── ProfilePage ──────────────────────────────────────────────────────────────
 
 function ProfilePage() {
-  const { profile, loading, saveProfile } = useCompanyProfile();
+  const { profile, loading, saveProfile, uploadLogo } = useCompanyProfile();
   const isAdmin = useIsAdmin();
   const [form, setForm] = useState<CompanyProfileFormData>(INITIAL_FORM);
 
@@ -318,6 +399,11 @@ function ProfilePage() {
     >
       <div className="max-w-xl">
         <Section title="Företagsinformation">
+          <LogoUpload
+            currentUrl={profile?.logoUrl}
+            editable={isAdmin}
+            onUpload={(file) => uploadLogo(file).then(() => {})}
+          />
           <InlineField
             label="Juridiskt namn"
             value={form.legalName}

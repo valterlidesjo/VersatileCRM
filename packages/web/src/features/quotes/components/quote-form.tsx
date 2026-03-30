@@ -1,19 +1,26 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus } from "lucide-react";
+import { Plus, UserPlus, Type } from "lucide-react";
 import { useCustomers } from "@/features/customers/hooks/use-customers";
+import { AddCustomerDialog } from "@/features/customers/components/add-customer-dialog";
 import { useCompanyProfile } from "@/features/profile/hooks/use-profile";
 import { useQuotes, type QuoteFormData } from "../hooks/use-quotes";
 import { QuoteLineItem } from "./quote-line-item";
 import { ProfitabilityCard } from "./profitability-card";
 import { calcQuoteTotals, type QuoteLineData, type CostEntry } from "../utils/calculations";
 import { generateQuotePdf } from "../utils/generate-quote-pdf";
+import { fetchLogoDataUrl } from "@/lib/logo-data-url";
+import { useProductSuggestions } from "@/features/invoices/hooks/use-product-suggestions";
 import type { VatRateType, BillingFrequency, Quote, Customer } from "@crm/shared";
 
 const INPUT_CLASS =
   "w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors";
 
 function emptyLine(): QuoteLineData {
-  return { description: "", quantity: 1, unitPrice: 0, vatRate: "25", billingFrequency: "one-time" };
+  return { type: "article", description: "", quantity: 1, unitPrice: 0, vatRate: "25", billingFrequency: "one-time" };
+}
+
+function emptyTextLine(): QuoteLineData {
+  return { type: "text", description: "", quantity: 0, unitPrice: 0, vatRate: "25", billingFrequency: "one-time" };
 }
 
 function defaultValidUntil(): string {
@@ -28,9 +35,11 @@ interface QuoteFormProps {
 }
 
 export function QuoteForm({ existingQuote, onSaved }: QuoteFormProps) {
-  const { customers } = useCustomers();
+  const { customers, addCustomer } = useCustomers();
   const { profile } = useCompanyProfile();
   const { addQuote, updateQuote, generateQuoteNumber } = useQuotes();
+  const { suggestions } = useProductSuggestions();
+  const [showAddCustomer, setShowAddCustomer] = useState(false);
 
   const [customerId, setCustomerId] = useState(
     existingQuote?.customerId ?? ""
@@ -61,6 +70,7 @@ export function QuoteForm({ existingQuote, onSaved }: QuoteFormProps) {
     existingQuote?.costs?.map((c) => ({ label: c.label, amount: c.amount })) ?? []
   );
   const [saving, setSaving] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const currency = "SEK";
 
   const totals = useMemo(() => calcQuoteTotals(items), [items]);
@@ -88,8 +98,38 @@ export function QuoteForm({ existingQuote, onSaved }: QuoteFormProps) {
     });
   }
 
+  function handleSelectProduct(
+    index: number,
+    data: Pick<QuoteLineData, "description" | "unitPrice" | "productId" | "variantId" | "sku">
+  ) {
+    setItems((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], ...data };
+      return updated;
+    });
+  }
+
   function addLine() {
     setItems((prev) => [...prev, emptyLine()]);
+  }
+
+  function addTextLine() {
+    setItems((prev) => [...prev, emptyTextLine()]);
+  }
+
+  function handleDragStart(index: number) {
+    setDragIndex(index);
+  }
+
+  function handleDrop(targetIndex: number) {
+    if (dragIndex === null || dragIndex === targetIndex) return;
+    setItems((prev) => {
+      const updated = [...prev];
+      const [moved] = updated.splice(dragIndex, 1);
+      updated.splice(targetIndex, 0, moved);
+      return updated;
+    });
+    setDragIndex(null);
   }
 
   function removeLine(index: number) {
@@ -139,6 +179,18 @@ export function QuoteForm({ existingQuote, onSaved }: QuoteFormProps) {
     }
   }
 
+  async function handleSaveQuote() {
+    if (!customerId || !existingQuote) return;
+    setSaving(true);
+    try {
+      const keepStatus = existingQuote.status === "draft" ? "created" : existingQuote.status;
+      await updateQuote(existingQuote.id, { ...buildFormData("created"), status: keepStatus });
+      onSaved?.();
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleCreatePdf() {
     if (!customerId || !profile) return;
     setSaving(true);
@@ -153,6 +205,10 @@ export function QuoteForm({ existingQuote, onSaved }: QuoteFormProps) {
         setQuoteNumber(qNum);
       }
 
+      const logoDataUrl = profile.logoUrl
+        ? await fetchLogoDataUrl(profile.logoUrl)
+        : undefined;
+
       generateQuotePdf({
         profile,
         customer: selectedCustomer!,
@@ -163,6 +219,7 @@ export function QuoteForm({ existingQuote, onSaved }: QuoteFormProps) {
         notes,
         language,
         currency,
+        logoDataUrl,
       });
 
       onSaved?.();
@@ -171,33 +228,53 @@ export function QuoteForm({ existingQuote, onSaved }: QuoteFormProps) {
     }
   }
 
+  async function handleAddCustomerInline(data: Parameters<typeof addCustomer>[0]) {
+    const newId = await addCustomer(data);
+    setCustomerId(newId);
+    setShowAddCustomer(false);
+  }
+
   return (
     <div className="space-y-6">
+      <AddCustomerDialog
+        open={showAddCustomer}
+        onOpenChange={setShowAddCustomer}
+        onSubmit={handleAddCustomerInline}
+      />
+
       {/* Customer & Quote Details */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
           <label className="mb-1 block text-sm font-medium">Customer</label>
-          <select
-            className={INPUT_CLASS}
-            value={customerId}
-            onChange={(e) => setCustomerId(e.target.value)}
-            required
-          >
-            <option value="">Select customer...</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex gap-2">
+            <select
+              className={INPUT_CLASS}
+              value={customerId}
+              onChange={(e) => setCustomerId(e.target.value)}
+              required
+            >
+              <option value="">Select customer...</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setShowAddCustomer(true)}
+              className="shrink-0 flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              title="Add new customer"
+            >
+              <UserPlus className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium">Quote Number</label>
+        <div className="hidden">
           <input
-            className={INPUT_CLASS}
             value={quoteNumber}
             onChange={(e) => setQuoteNumber(e.target.value)}
-            placeholder="Auto-generated on save"
+            readOnly
           />
         </div>
         <div>
@@ -217,7 +294,8 @@ export function QuoteForm({ existingQuote, onSaved }: QuoteFormProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/30">
-              <th className="py-2 pr-2 pl-4 text-left font-medium text-muted-foreground">
+              <th className="py-2 pl-2 w-6" />
+              <th className="py-2 pr-2 text-left font-medium text-muted-foreground">
                 Description
               </th>
               <th className="py-2 px-2 text-right font-medium text-muted-foreground w-20">
@@ -248,13 +326,20 @@ export function QuoteForm({ existingQuote, onSaved }: QuoteFormProps) {
                 item={item}
                 index={i}
                 onChange={handleLineChange}
+                onSelectProduct={handleSelectProduct}
                 onRemove={removeLine}
                 currency={currency}
+                suggestions={suggestions}
+                isDragging={dragIndex === i}
+                onDragStart={() => handleDragStart(i)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => handleDrop(i)}
+                onDragEnd={() => setDragIndex(null)}
               />
             ))}
           </tbody>
         </table>
-        <div className="p-2 border-t border-border">
+        <div className="p-2 border-t border-border flex gap-2">
           <button
             type="button"
             onClick={addLine}
@@ -262,6 +347,14 @@ export function QuoteForm({ existingQuote, onSaved }: QuoteFormProps) {
           >
             <Plus className="h-4 w-4" />
             Add line
+          </button>
+          <button
+            type="button"
+            onClick={addTextLine}
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted transition-colors"
+          >
+            <Type className="h-4 w-4" />
+            Add text
           </button>
         </div>
       </div>
@@ -360,13 +453,27 @@ export function QuoteForm({ existingQuote, onSaved }: QuoteFormProps) {
           >
             {saving ? "Saving..." : "Save as Draft"}
           </button>
+          {existingQuote && (
+            <button
+              type="button"
+              onClick={handleSaveQuote}
+              disabled={!customerId || saving}
+              className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save Quote"}
+            </button>
+          )}
           <button
             type="button"
             onClick={handleCreatePdf}
             disabled={!customerId || !profile || saving}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
-            {saving ? "Creating..." : "Create & Download PDF"}
+            {saving
+              ? "Saving..."
+              : existingQuote
+              ? "Update & Download PDF"
+              : "Create & Download PDF"}
           </button>
         </div>
       </div>

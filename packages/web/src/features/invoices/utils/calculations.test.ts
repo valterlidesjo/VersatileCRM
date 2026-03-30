@@ -101,6 +101,58 @@ describe("calcInvoiceTotals", () => {
   });
 });
 
+describe("InvoiceLineData optional inventory fields", () => {
+  it("calculates correctly when productId is present", () => {
+    const items: InvoiceLineData[] = [
+      { description: "Laptop", quantity: 1, unitPrice: 1000, vatRate: "25", productId: "prod-123" },
+    ];
+    const result = calcInvoiceTotals(items);
+    expect(result.subtotal).toBe(1000);
+    expect(result.total).toBe(1250);
+  });
+
+  it("calculates correctly when variantId is present", () => {
+    const items: InvoiceLineData[] = [
+      { description: "Shirt L", quantity: 5, unitPrice: 100, vatRate: "25", variantId: "var-456" },
+    ];
+    const result = calcInvoiceTotals(items);
+    expect(result.subtotal).toBe(500);
+    expect(result.total).toBe(625);
+  });
+
+  it("calculates correctly when sku is present", () => {
+    const items: InvoiceLineData[] = [
+      { description: "Widget", quantity: 10, unitPrice: 50, vatRate: "12", sku: "SKU-789" },
+    ];
+    const result = calcInvoiceTotals(items);
+    expect(result.subtotal).toBe(500);
+    expect(result.vatAmount).toBeCloseTo(60);
+  });
+
+  it("produces identical totals for inventory vs custom items with same price/qty/vat", () => {
+    const inventoryItem: InvoiceLineData = {
+      description: "Product from inventory",
+      quantity: 2,
+      unitPrice: 500,
+      vatRate: "25",
+      productId: "p1",
+      variantId: "v1",
+      sku: "P1-SKU",
+    };
+    const customItem: InvoiceLineData = {
+      description: "Custom line item",
+      quantity: 2,
+      unitPrice: 500,
+      vatRate: "25",
+    };
+    const r1 = calcInvoiceTotals([inventoryItem]);
+    const r2 = calcInvoiceTotals([customItem]);
+    expect(r1.subtotal).toBe(r2.subtotal);
+    expect(r1.vatAmount).toBe(r2.vatAmount);
+    expect(r1.total).toBe(r2.total);
+  });
+});
+
 describe("formatVatNumber", () => {
   it("returns org number as-is for domestic invoices", () => {
     expect(formatVatNumber("556677-8899", false)).toBe("556677-8899");

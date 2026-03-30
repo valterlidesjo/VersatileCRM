@@ -79,7 +79,12 @@
       "Skill(ship)",
       "Skill(ship:*)",
       "Bash(firebase --version)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(xargs ls:*)",
+      "Bash(git fetch:*)",
+      "Bash(find /Users/valter/business/crm -type f \\\\\\(-name .env* -o -name *.rules -o -name cors.json -o -name firebase.json \\\\\\))",
+      "Bash(xargs cat:*)",
+      "Bash(git -C /Users/valter/business/crm log --all --oneline)"
     ],
     "deny": [
       "Bash(rm -rf*)",

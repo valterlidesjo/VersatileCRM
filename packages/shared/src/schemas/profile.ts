@@ -15,6 +15,7 @@ export const CompanyProfile = Schema.Struct({
   goalDeadline: Schema.optional(Schema.String),
   goalDescription: Schema.optional(Schema.String),
   fSkatt: Schema.Boolean,
+  logoUrl: Schema.optional(Schema.String),
   createdAt: Schema.String,
   updatedAt: Schema.String,
 });

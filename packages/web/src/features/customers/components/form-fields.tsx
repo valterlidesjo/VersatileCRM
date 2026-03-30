@@ -2,17 +2,23 @@ import { CUSTOMER_STATUS_LABELS } from "@crm/shared";
 import type { CustomerStatusType } from "@crm/shared";
 
 export interface CustomerFormData {
+  customerType: "business" | "private";
   name: string;
   location: string;
   phone: string;
   email: string;
   status: CustomerStatusType;
+  // business fields
   categoryOfWork: string;
   description: string;
   website: string;
   orgNumber: string;
   legalName: string;
   mrr: number | "";
+  // private fields
+  firstName: string;
+  lastName: string;
+  personalNumber: string;
 }
 
 export interface UserFormData {
@@ -23,6 +29,7 @@ export interface UserFormData {
 }
 
 export const INITIAL_CUSTOMER: CustomerFormData = {
+  customerType: "business",
   name: "",
   location: "",
   phone: "",
@@ -34,6 +41,9 @@ export const INITIAL_CUSTOMER: CustomerFormData = {
   orgNumber: "",
   legalName: "",
   mrr: "",
+  firstName: "",
+  lastName: "",
+  personalNumber: "",
 };
 
 export const INITIAL_USER: UserFormData = {

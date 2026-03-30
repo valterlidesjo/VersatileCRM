@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import type { Invoice, Customer } from "@crm/shared";
 import { INVOICE_STATUS_LABELS } from "@crm/shared";
 import { cn } from "@/lib/utils";
-import { ChevronRight, ChevronDown, Trash2 } from "lucide-react";
+import { ChevronRight, ChevronDown, Trash2, Pencil } from "lucide-react";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -23,53 +24,33 @@ interface InvoiceListProps {
 export function InvoiceList({ invoices, customers, onDelete }: InvoiceListProps) {
   const navigate = useNavigate();
   const [cancelledExpanded, setCancelledExpanded] = useState(false);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const active = invoices.filter((inv) => inv.status !== "cancelled");
   const cancelled = invoices.filter((inv) => inv.status === "cancelled");
 
-  function customerName(id: string): string {
-    return customers.find((c) => c.id === id)?.name ?? "Unknown";
-  }
-
-  async function handleDelete(id: string) {
-    setDeletingId(id);
-    try {
-      await onDelete(id);
-      setConfirmDeleteId(null);
-    } finally {
-      setDeletingId(null);
-    }
-  }
+  const customerMap = useMemo(
+    () => new Map(customers.map((c) => [c.id, c.name])),
+    [customers]
+  );
+  const customerName = (id: string) => customerMap.get(id) ?? "Unknown";
 
   function navigateToInvoice(id: string) {
     navigate({ to: "/invoicing/$invoiceId", params: { invoiceId: id } });
   }
 
+  const deleteTarget = invoices.find((inv) => inv.id === deleteTargetId);
+
   const tableHeader = (
     <tr className="border-b border-border bg-muted/30">
-      <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-        Invoice #
-      </th>
-      <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-        Reference
-      </th>
-      <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-        Customer
-      </th>
-      <th className="py-2.5 px-4 text-right font-medium text-muted-foreground">
-        Total
-      </th>
-      <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-        Status
-      </th>
-      <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-        Due Date
-      </th>
-      <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-        Created
-      </th>
+      <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">Invoice #</th>
+      <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">Reference</th>
+      <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">Customer</th>
+      <th className="py-2.5 px-4 text-right font-medium text-muted-foreground">Total</th>
+      <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">Status</th>
+      <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">Due Date</th>
+      <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">Created</th>
+      <th className="py-2.5 px-4" />
     </tr>
   );
 
@@ -84,9 +65,7 @@ export function InvoiceList({ invoices, customers, onDelete }: InvoiceListProps)
   return (
     <div className="space-y-4">
       {active.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          No active invoices.
-        </p>
+        <p className="py-8 text-center text-sm text-muted-foreground">No active invoices.</p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-sm">
@@ -102,9 +81,7 @@ export function InvoiceList({ invoices, customers, onDelete }: InvoiceListProps)
                   <td className="py-2.5 px-4 font-mono text-xs">{inv.invoiceRef}</td>
                   <td className="py-2.5 px-4">{customerName(inv.customerId)}</td>
                   <td className="py-2.5 px-4 text-right tabular-nums">
-                    {inv.totalAmount.toLocaleString("sv-SE", {
-                      minimumFractionDigits: 2,
-                    })}{" "}
+                    {inv.totalAmount.toLocaleString("sv-SE", { minimumFractionDigits: 2 })}{" "}
                     {inv.currency}
                   </td>
                   <td className="py-2.5 px-4">
@@ -117,11 +94,29 @@ export function InvoiceList({ invoices, customers, onDelete }: InvoiceListProps)
                       {INVOICE_STATUS_LABELS[inv.status]}
                     </span>
                   </td>
-                  <td className="py-2.5 px-4 text-muted-foreground">
-                    {inv.dueDate}
-                  </td>
+                  <td className="py-2.5 px-4 text-muted-foreground">{inv.dueDate}</td>
                   <td className="py-2.5 px-4 text-muted-foreground">
                     {inv.createdAt.slice(0, 10)}
+                  </td>
+                  <td className="py-2.5 px-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => navigateToInvoice(inv.id)}
+                        className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTargetId(inv.id)}
+                        className="flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -151,49 +146,28 @@ export function InvoiceList({ invoices, customers, onDelete }: InvoiceListProps)
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
-                    <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-                      Invoice #
-                    </th>
-                    <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-                      Reference
-                    </th>
-                    <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-                      Customer
-                    </th>
-                    <th className="py-2.5 px-4 text-right font-medium text-muted-foreground">
-                      Total
-                    </th>
-                    <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-                      Reason
-                    </th>
-                    <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">
-                      Cancelled
-                    </th>
+                    <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">Invoice #</th>
+                    <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">Reference</th>
+                    <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">Customer</th>
+                    <th className="py-2.5 px-4 text-right font-medium text-muted-foreground">Total</th>
+                    <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">Reason</th>
+                    <th className="py-2.5 px-4 text-left font-medium text-muted-foreground">Cancelled</th>
                     <th className="py-2.5 px-4" />
                   </tr>
                 </thead>
                 <tbody>
                   {cancelled.map((inv) => (
-                    <tr
-                      key={inv.id}
-                      className="border-b border-border last:border-b-0"
-                    >
+                    <tr key={inv.id} className="border-b border-border last:border-b-0">
                       <td
                         className="py-2.5 px-4 font-medium cursor-pointer hover:underline"
                         onClick={() => navigateToInvoice(inv.id)}
                       >
                         {inv.invoiceNumber}
                       </td>
-                      <td className="py-2.5 px-4 font-mono text-xs">
-                        {inv.invoiceRef}
-                      </td>
-                      <td className="py-2.5 px-4">
-                        {customerName(inv.customerId)}
-                      </td>
+                      <td className="py-2.5 px-4 font-mono text-xs">{inv.invoiceRef}</td>
+                      <td className="py-2.5 px-4">{customerName(inv.customerId)}</td>
                       <td className="py-2.5 px-4 text-right tabular-nums text-muted-foreground">
-                        {inv.totalAmount.toLocaleString("sv-SE", {
-                          minimumFractionDigits: 2,
-                        })}{" "}
+                        {inv.totalAmount.toLocaleString("sv-SE", { minimumFractionDigits: 2 })}{" "}
                         {inv.currency}
                       </td>
                       <td className="py-2.5 px-4 text-muted-foreground max-w-xs truncate">
@@ -203,37 +177,14 @@ export function InvoiceList({ invoices, customers, onDelete }: InvoiceListProps)
                         {inv.updatedAt.slice(0, 10)}
                       </td>
                       <td className="py-2.5 px-4">
-                        {confirmDeleteId === inv.id ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground whitespace-nowrap">
-                              Delete invoice?
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(inv.id)}
-                              disabled={deletingId === inv.id}
-                              className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50 whitespace-nowrap"
-                            >
-                              {deletingId === inv.id ? "Deleting..." : "Yes, delete"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setConfirmDeleteId(null)}
-                              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-muted transition-colors"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteId(inv.id)}
-                            className="flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Delete
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTargetId(inv.id)}
+                          className="flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -243,6 +194,14 @@ export function InvoiceList({ invoices, customers, onDelete }: InvoiceListProps)
           )}
         </div>
       )}
+
+      <DeleteConfirmDialog
+        open={deleteTargetId !== null}
+        onOpenChange={(open) => { if (!open) setDeleteTargetId(null); }}
+        title={`Delete invoice ${deleteTarget?.invoiceNumber ?? ""}?`}
+        description="This action cannot be undone. The invoice will be permanently deleted."
+        onConfirm={() => onDelete(deleteTargetId!)}
+      />
     </div>
   );
 }

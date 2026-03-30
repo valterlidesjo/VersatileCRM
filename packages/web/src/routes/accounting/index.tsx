@@ -8,6 +8,7 @@ import { EditEntryDialog } from "@/features/accounting/components/edit-entry-dia
 import { ExportEntriesDialog } from "@/features/accounting/components/export-entries-dialog";
 import { ImportEntriesDialog } from "@/features/accounting/components/import-entries-dialog";
 import { useJournalEntries } from "@/features/accounting/hooks/use-journal-entries";
+import { useAccountCategories } from "@/features/accounting/hooks/use-account-categories";
 import {
   derivePeriodRange,
   type Period,
@@ -50,6 +51,7 @@ function AccountingPage() {
   const dateRange = derivePeriodRange(period);
   const { entries, loading, addEntry, updateEntry, deleteEntry } =
     useJournalEntries(dateRange);
+  const { categories, addCategory } = useAccountCategories();
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [showExport, setShowExport] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -138,7 +140,7 @@ function AccountingPage() {
           </div>
         )}
 
-        <TransactionForm onSubmit={addEntry} />
+        <TransactionForm categories={categories} onSubmit={addEntry} onAddCategory={addCategory} />
 
         {/* Summary counters */}
         {entries.length > 0 && (
@@ -195,6 +197,7 @@ function AccountingPage() {
             if (!open) setEditingEntry(null);
           }}
           entry={editingEntry}
+          categories={categories}
           onSave={updateEntry}
         />
       </div>
