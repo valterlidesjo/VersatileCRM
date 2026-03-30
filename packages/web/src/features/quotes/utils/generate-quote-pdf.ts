@@ -95,7 +95,7 @@ export function generateQuotePdf(params: GenerateQuotePdfParams) {
   const lightBg = [247, 250, 252] as const;
   const borderColor = [220, 229, 238] as const;
 
-  function hline(yPos: number, x1 = margin, x2 = pageWidth - margin, color = borderColor, lw = 0.25) {
+  function hline(yPos: number, x1 = margin, x2 = pageWidth - margin, color: readonly [number, number, number] = borderColor, lw = 0.25) {
     doc.setDrawColor(...color);
     doc.setLineWidth(lw);
     doc.line(x1, yPos, x2, yPos);

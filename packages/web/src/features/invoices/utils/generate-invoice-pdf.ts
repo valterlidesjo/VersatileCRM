@@ -87,7 +87,6 @@ export function generateInvoicePdf(params: GenerateInvoicePdfParams) {
     notes,
     language,
     currency,
-    isInternational,
     logoDataUrl,
   } = params;
   const l = LABELS[language];
@@ -105,7 +104,7 @@ export function generateInvoicePdf(params: GenerateInvoicePdfParams) {
   const lightBg = [247, 250, 252] as const;
   const borderColor = [220, 229, 238] as const;
 
-  function hline(yPos: number, x1 = margin, x2 = pageWidth - margin, color = borderColor, lw = 0.25) {
+  function hline(yPos: number, x1 = margin, x2 = pageWidth - margin, color: readonly [number, number, number] = borderColor, lw = 0.25) {
     doc.setDrawColor(...color);
     doc.setLineWidth(lw);
     doc.line(x1, yPos, x2, yPos);
@@ -155,7 +154,6 @@ export function generateInvoicePdf(params: GenerateInvoicePdfParams) {
   // Right column: invoice meta (number, date, due, ref, interest)
   // These use independent y-trackers so they never overlap.
 
-  const colSplit = pageWidth / 2 - 4;        // left col ends here
   const metaLabelX = pageWidth / 2 + 2;      // meta labels start
   const metaValueX = pageWidth - margin;      // meta values (right-aligned)
 
